@@ -21,6 +21,19 @@ Parameters:
       'development' y 'production' apuntan a AWS real.
 
 # ---------------------------------------------------------------------------
+# Mappings
+# ---------------------------------------------------------------------------
+
+Mappings:
+  EnvironmentBucketSuffix:
+    localstack:
+      Suffix: localstack
+    development:
+      Suffix: dev
+    production:
+      Suffix: production
+
+# ---------------------------------------------------------------------------
 # Recursos
 # ---------------------------------------------------------------------------
 
@@ -35,6 +48,8 @@ Resources:
     Properties:
       StageName: !Ref EnvironmentName
       Description: API de Claro y Simple
+      Tags:
+        project: hackaton
       # API Key requerida para control de costos durante el hackathon
       Auth:
         ApiKeyRequired: true
@@ -52,7 +67,9 @@ Resources:
   ContractsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: claro-y-simple-contracts
+      BucketName: !Sub
+        - "claro-y-simple-contracts-${Suffix}"
+        - Suffix: !FindInMap [EnvironmentBucketSuffix, !Ref EnvironmentName, Suffix]
       LifecycleConfiguration:
         Rules:
           - Id: expire-contracts-24h
@@ -64,6 +81,9 @@ Resources:
       # Eliminar objetos completamente después de 24h
       VersioningConfiguration:
         Status: Disabled
+      Tags:
+        - Key: project
+          Value: hackaton
 
   # -------------------------------------------------------------------------
   # Tabla DynamoDB — ContractExtractions (Contrato 1)
@@ -83,6 +103,9 @@ Resources:
       TimeToLiveSpecification:
         Enabled: true
         AttributeName: ttl
+      Tags:
+        - Key: project
+          Value: hackaton
 
   # -------------------------------------------------------------------------
   # Función Lambda — Ingestion handler
@@ -96,6 +119,8 @@ Resources:
       CodeUri: ../backend/ingestion/
       Timeout: 30
       MemorySize: 512
+      Tags:
+        project: hackaton
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref ContractExtractionsTable

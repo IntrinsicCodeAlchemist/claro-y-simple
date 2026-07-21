@@ -327,7 +327,7 @@ def lambda_handler(event: dict, context: object) -> dict:
             body["document_id"] = document_id
         return _http_response(422, body)
 
-    except Exception as exc:
+    except Exception:
         logger.exception("Error inesperado", document_id=document_id)
         return _http_response(500, {
             "error_code": "INTERNAL_ERROR",

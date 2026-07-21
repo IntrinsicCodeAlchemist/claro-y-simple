@@ -35,12 +35,12 @@ pytestmark = pytest.mark.skipif(
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from datetime import datetime, timezone
-from unittest.mock import patch
+from datetime import datetime, timezone  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
-from ingestion.handler import lambda_handler
-from ingestion.models import ExtractionResult, ExtractionMetadata
-from shared.aws_utils import get_boto3_client
+from ingestion.handler import lambda_handler  # noqa: E402
+from ingestion.models import ExtractionResult, ExtractionMetadata  # noqa: E402
+from shared.aws_utils import get_boto3_client  # noqa: E402
 
 BOUNDARY = "----IntegrationTestBoundary"
 S3_BUCKET = os.environ.get("S3_BUCKET_NAME", "claro-y-simple-contracts")
@@ -94,7 +94,7 @@ def test_integration_full_flow_text_extraction(s3_client, dynamo_client):
     event = _build_event(pdf_bytes)
     ctx = FakeContext()
 
-    with patch("ingestion.extractor._textract_client") as mock_textract:
+    with patch("ingestion.extractor._textract_client"):
         # Textract no debería ser llamado — pdfplumber extrae el texto
         response = lambda_handler(event, ctx)
 

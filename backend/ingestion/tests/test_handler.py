@@ -148,7 +148,7 @@ class TestHandlerValidationErrors:
         event = build_multipart_event(sample_pdf_bytes, part_content_type="text/plain")
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._s3_client"),
             patch("ingestion.handler._dynamodb_client") as mock_dynamo,
         ):
             response = lambda_handler(event, lambda_context)
@@ -164,7 +164,7 @@ class TestHandlerValidationErrors:
         event = build_multipart_event(sample_pdf_bytes, field_name="document")
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._s3_client"),
             patch("ingestion.handler._dynamodb_client") as mock_dynamo,
         ):
             response = lambda_handler(event, lambda_context)
@@ -192,7 +192,7 @@ class TestHandlerFileValidationErrors:
         }
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._s3_client"),
             patch("ingestion.handler._dynamodb_client") as mock_dynamo,
         ):
             response = lambda_handler(event, lambda_context)
@@ -211,7 +211,7 @@ class TestHandlerFileValidationErrors:
         )
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._s3_client"),
             patch("ingestion.handler._dynamodb_client") as mock_dynamo,
         ):
             response = lambda_handler(event, lambda_context)
@@ -227,7 +227,7 @@ class TestHandlerFileValidationErrors:
         event = build_multipart_event(large_bytes)
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._s3_client"),
             patch("ingestion.handler._dynamodb_client") as mock_dynamo,
         ):
             response = lambda_handler(event, lambda_context)
@@ -349,8 +349,8 @@ class TestHandlerInternalError:
         event = build_multipart_event(sample_pdf_bytes)
 
         with (
-            patch("ingestion.handler._s3_client") as mock_s3,
-            patch("ingestion.handler._dynamodb_client") as mock_dynamo,
+            patch("ingestion.handler._s3_client"),
+            patch("ingestion.handler._dynamodb_client"),
             patch("uuid.uuid4", side_effect=Exception("unexpected failure")),
         ):
             response = lambda_handler(event, lambda_context)
