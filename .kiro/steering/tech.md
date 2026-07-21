@@ -92,6 +92,25 @@ El equipo dispone de **$100 USD en créditos AWS**. Prioridades para mantener co
 
 ---
 
+## Etiquetado de Recursos AWS
+
+Todo recurso creado en la cuenta real de AWS debe llevar el tag:
+
+```
+Key: project
+Value: hackaton
+```
+
+**Reglas:**
+
+- El valor es exactamente `hackaton` (todo minúsculas, sin 'h' final — es el valor acordado por el equipo, no corregir)
+- Aplica a: S3 buckets, tablas DynamoDB, funciones Lambda, API Gateway, y cualquier otro recurso que se cree en AWS real
+- **No aplica a recursos de LocalStack** — no tienen costo real que rastrear
+- El tag debe estar definido en `infra/template.yaml` para todos los recursos del stack
+- Los recursos creados manualmente fuera del template (ej: buckets de desarrollo) deben recibir el tag vía AWS CLI
+
+---
+
 ## Protección de Endpoints y Control de Costos en API Gateway
 
 El endpoint de análisis llama a Amazon Bedrock en cada request. Un consumo descontrolado puede agotar el presupuesto antes de la demo. Implementar como mínimo:
