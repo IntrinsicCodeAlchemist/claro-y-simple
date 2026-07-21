@@ -554,53 +554,53 @@ class AnalysisError(Exception):
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+*Una property es una característica o comportamiento que debe cumplirse en todas las ejecuciones válidas de un sistema — esencialmente, una declaración formal sobre lo que el sistema debe hacer. Las properties sirven como puente entre especificaciones legibles por humanos y garantías de corrección verificables por máquinas.*
 
 ### Property 1: Risk score bounded invariant
 
-*For any* list of clauses (including empty lists), where each clause has a valid `risk_level` in `{"bajo", "medio", "alto"}`, the `calculate_risk_score` function SHALL produce an integer in the range [0, 100] inclusive.
+*Para cualquier* lista de cláusulas (incluyendo listas vacías), donde cada cláusula tiene un `risk_level` válido en `{"bajo", "medio", "alto"}`, la función `calculate_risk_score` SHALL producir un entero en el rango [0, 100] inclusive.
 
 **Validates: Requirements 8.1, 8.4**
 
 ### Property 2: Risk score monotonicity
 
-*For any* list of clauses `L` and any additional clause `c` with a valid `risk_level`, the risk score of `L + [c]` SHALL be greater than or equal to the risk score of `L`.
+*Para cualquier* lista de cláusulas `L` y cualquier cláusula adicional `c` con un `risk_level` válido, el risk score de `L + [c]` SHALL ser mayor o igual al risk score de `L`.
 
 **Validates: Requirements 8.3**
 
 ### Property 3: Risk score zero for empty clauses
 
-*For any* invocation of `calculate_risk_score` with an empty list, the result SHALL be exactly 0.
+*Para cualquier* invocación de `calculate_risk_score` con una lista vacía, el resultado SHALL ser exactamente 0.
 
 **Validates: Requirements 8.2**
 
 ### Property 4: Cache round-trip fidelity
 
-*For any* valid `AnalysisResult`, serializing it with `build_analysis_dynamodb_item` and then deserializing with `deserialize_analysis_item` SHALL produce a dict whose fields (`document_id`, `summary_plain`, `risk_score`, `clauses`, `overall_recommendation`) are equivalent to the original.
+*Para cualquier* `AnalysisResult` válido, serializarlo con `build_analysis_dynamodb_item` y luego deserializarlo con `deserialize_analysis_item` SHALL producir un dict cuyos campos (`document_id`, `summary_plain`, `risk_score`, `clauses`, `overall_recommendation`) sean equivalentes al original.
 
 **Validates: Requirements 9.1, 9.2**
 
 ### Property 5: Invalid model response rejection
 
-*For any* string that is either (a) not valid JSON, (b) valid JSON missing required fields (`summary_plain`, `clauses`, `overall_recommendation`), or (c) valid JSON with `category` not in ClauseCategory or `risk_level` not in RiskLevel, the `parse_model_response` function SHALL raise an error resulting in `MODEL_RESPONSE_INVALID`.
+*Para cualquier* string que sea (a) JSON inválido, (b) JSON válido pero sin los campos requeridos (`summary_plain`, `clauses`, `overall_recommendation`), o (c) JSON válido con `category` fuera de ClauseCategory o `risk_level` fuera de RiskLevel, la función `parse_model_response` SHALL lanzar un error que resulte en `MODEL_RESPONSE_INVALID`.
 
 **Validates: Requirements 7.1, 7.2, 7.3**
 
 ### Property 6: Valid model response parsing preserves data
 
-*For any* well-formed JSON string conforming to the `ModelResponse` schema (valid categories, valid risk_levels, non-empty clause_text), the `parse_model_response` function SHALL return a `ModelResponse` object whose fields match the input JSON exactly.
+*Para cualquier* string JSON bien formado que conforme al schema de `ModelResponse` (categorías válidas, risk_levels válidos, clause_text no vacío), la función `parse_model_response` SHALL retornar un objeto `ModelResponse` cuyos campos coincidan exactamente con el JSON de entrada.
 
 **Validates: Requirements 7.4**
 
 ### Property 7: Invalid UUID rejection
 
-*For any* string that does not match the UUID v4 regex pattern `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, the `validate_document_id` function SHALL raise an error resulting in `INVALID_DOCUMENT_ID`.
+*Para cualquier* string que no coincida con el patrón regex UUID v4 `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, la función `validate_document_id` SHALL lanzar un error que resulte en `INVALID_DOCUMENT_ID`.
 
 **Validates: Requirements 1.2**
 
 ### Property 8: Unexpected error safety
 
-*For any* unexpected exception raised during the handler execution, the HTTP response SHALL have status 500 with `error_code` equal to `INTERNAL_ERROR` and the response body SHALL NOT contain stack traces, internal variable names, or infrastructure details.
+*Para cualquier* excepción inesperada lanzada durante la ejecución del handler, la respuesta HTTP SHALL tener status 500 con `error_code` igual a `INTERNAL_ERROR` y el body de la respuesta SHALL NO contener stack traces, nombres de variables internas, ni detalles de infraestructura.
 
 **Validates: Requirements 14.1, 14.3**
 
