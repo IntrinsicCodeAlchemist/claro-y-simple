@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-ingestion:
+    name: Test — Ingestion module
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/ingestion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          pip install ruff
+      - name: Lint
+        run: ruff check .
+      - name: Tests unitarios (sin integración)
+        run: pytest tests/ -v -m "not integration"
