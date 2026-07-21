@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Claro y Simple — Módulo 1: Ingesta y Extracción.
+  Recibe un PDF, extrae su texto y persiste el resultado en DynamoDB.
+
+# ---------------------------------------------------------------------------
+# Parámetros
+# ---------------------------------------------------------------------------
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: development
+    AllowedValues:
+      - localstack
+      - development
+      - production
+    Description: >
+      Modo del entorno. 'localstack' usa endpoints emulados localmente;
+      'development' y 'production' apuntan a AWS real.
+
+# ---------------------------------------------------------------------------
+# Recursos
+# ---------------------------------------------------------------------------
+
+Resources:
+
+  # -------------------------------------------------------------------------
+  # API Gateway — REST API
+  # -------------------------------------------------------------------------
+
+  ClaroYSimpleApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref EnvironmentName
+      Description: API de Claro y Simple
+      # API Key requerida para control de costos durante el hackathon
+      Auth:
+        ApiKeyRequired: true
+      # Throttling: rate 10 req/s, burst 20 (tech.md)
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: 10
+          ThrottlingBurstLimit: 20
+
+  # -------------------------------------------------------------------------
+  # Bucket S3 — almacenamiento de PDFs subidos
+  # -------------------------------------------------------------------------
+
+  ContractsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: claro-y-simple-contracts
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-contracts-24h
+            Status: Enabled
+            Filter:
+              Prefix: contracts/
+            Expiration:
+              Days: 1
+      # Eliminar objetos completamente después de 24h
+      VersioningConfiguration:
+        Status: Disabled
+
+  # -------------------------------------------------------------------------
+  # Tabla DynamoDB — ContractExtractions (Contrato 1)
+  # -------------------------------------------------------------------------
+
+  ContractExtractionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ContractExtractions
+      AttributeDefinitions:
+        - AttributeName: document_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: document_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+
+  # -------------------------------------------------------------------------
+  # Función Lambda — Ingestion handler
+  # -------------------------------------------------------------------------
+
+  IngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      Runtime: python3.12
+      CodeUri: ../backend/ingestion/
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref ContractExtractionsTable
+          S3_BUCKET_NAME: !Ref ContractsBucket
+          ENVIRONMENT: !Ref EnvironmentName
+          LOG_LEVEL: INFO
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ContractsBucket
+        - S3ReadPolicy:
+            BucketName: !Ref ContractsBucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref ContractExtractionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - textract:DetectDocumentText
+              Resource: "*"
+      Events:
+        IngestApi:
+          Type: Api
+          Properties:
+            Path: /ingest
+            Method: POST
+            RestApiId: !Ref ClaroYSimpleApi
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+
+Outputs:
+  IngestionApiUrl:
+    Description: URL base del endpoint de ingesta
+    Value: !Sub "https://${ClaroYSimpleApi}.execute-api.${AWS::Region}.amazonaws.com/${EnvironmentName}/ingest"
+
+  IngestionFunctionArn:
+    Description: ARN de la función Lambda de ingesta
+    Value: !GetAtt IngestionFunction.Arn

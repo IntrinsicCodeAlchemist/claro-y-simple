@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "hooks": [{
+    "name": "Lint Python on Save",
+    "trigger": "PostFileSave",
+    "matcher": "\\.py$",
+    "action": { "type": "command", "command": "ruff check backend/" }
+  }]
+}

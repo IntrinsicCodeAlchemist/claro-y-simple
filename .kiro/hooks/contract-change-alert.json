@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "hooks": [{
+    "name": "Contract Change Alert",
+    "trigger": "PostFileSave",
+    "matcher": "interface-contracts\\.md$",
+    "action": {
+      "type": "agent",
+      "prompt": "⚠️ ALERTA: Se modificó interface-contracts.md, que es la FUENTE DE VERDAD de los contratos de interfaz entre módulos del proyecto Claro y Simple.\n\nAntes de continuar, verificá que:\n1. Los 3 integrantes del equipo fueron notificados del cambio\n2. El cambio fue discutido y aprobado por los 3\n3. Los modelos Pydantic en backend/ingestion/models.py y backend/analysis/models.py fueron actualizados para reflejar el nuevo contrato\n4. Los tipos TypeScript en frontend/src/types/contract.ts fueron actualizados\n5. El cambio será commiteado en main antes de continuar el desarrollo en las ramas de módulos\n\nSi este cambio no fue coordinado con el equipo, revertilo con `git checkout .kiro/steering/interface-contracts.md` antes de continuar."
+    }
+  }]
+}

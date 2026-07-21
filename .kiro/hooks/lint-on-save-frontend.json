@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "hooks": [{
+    "name": "Lint Frontend on Save",
+    "trigger": "PostFileSave",
+    "matcher": "\\.(ts|tsx)$",
+    "action": {
+      "type": "command",
+      "command": "cd frontend && npm run lint"
+    }
+  }]
+}

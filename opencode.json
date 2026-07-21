@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".kiro/steering/*.md",
+    ".kiro/specs/ingestion/requirements.md",
+    ".kiro/specs/ingestion/design.md"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "hooks": [{
+    "name": "Steering README Reminder",
+    "trigger": "PostFileSave",
+    "matcher": "\\.kiro/steering/.*\\.md$",
+    "action": {
+      "type": "agent",
+      "prompt": "Se guardó un cambio en un steering doc del proyecto Claro y Simple. Si el cambio es sustancial (nueva decisión técnica, cambio de stack, nuevo principio, cambio de estructura de carpetas), recordá actualizar README.md para que refleje la información actualizada. El README es la primera referencia pública del proyecto y debe estar sincronizado con los steering docs. Si el cambio es menor (typo, formato), podés ignorar este recordatorio."
+    }
+  }]
+}

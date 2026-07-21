@@ -1,0 +1,12 @@
+# Claro y Simple — Módulo 1: Ingesta y Extracción
+# Dependencias de producción
+pydantic>=2.0
+aws-lambda-powertools
+boto3
+pdfplumber
+python-multipart
+
+# Dependencias de desarrollo y test
+pytest
+moto[s3,dynamodb,textract]
+hypothesis

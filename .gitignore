@@ -1,0 +1,34 @@
+# Archivos de entorno con credenciales/secretos
+.env
+**/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+
+# Node/Frontend (para cuando se agregue el módulo 3)
+node_modules/
+dist/
+.next/
+
+# IDE y herramientas
+.opencode/
+.vscode/
+*.swp
+*.swo
+
+# Archivos de prueba descartables (no commitear)
+scan_contrato_prueba.pdf
+
+# OS
+.DS_Store
+Thumbs.db
