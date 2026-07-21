@@ -32,3 +32,6 @@ scan_contrato_prueba.pdf
 # OS
 .DS_Store
 Thumbs.db
+
+# Kiro session snapshots (no commitear)
+.kiro/sessions/

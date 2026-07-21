@@ -269,6 +269,157 @@ export type IngestResponse = IngestSuccessResponse | IngestErrorResponse;
 
 ---
 
+## Contrato 4: Respuesta HTTP del endpoint de análisis (Módulo 2) → consumido por Módulo 3 (Frontend)
+
+**Transporte**: HTTP response de API Gateway
+**Endpoint**: `POST /analyze`
+
+### Request body
+
+```json
+{
+  "document_id": "string (uuid v4, obligatorio)"
+}
+```
+
+### Respuesta de éxito (HTTP 200)
+
+```json
+{
+  "document_id": "string (uuid v4)",
+  "summary_plain": "string (resumen en lenguaje simple, máx 500 palabras)",
+  "risk_score": "number (entero de 0 a 100)",
+  "clauses": [
+    {
+      "clause_text": "string (texto original de la cláusula)",
+      "category": "renovacion_automatica | multa | jurisdiccion | cesion_datos | otro",
+      "risk_level": "bajo | medio | alto",
+      "explanation": "string (explicación en lenguaje simple)",
+      "suggested_question": "string (pregunta que el usuario debería hacer antes de firmar)"
+    }
+  ],
+  "overall_recommendation": "string (recomendación general en lenguaje simple)",
+  "cached": "boolean (false = análisis fresco, true = resultado cacheado de análisis previo)"
+}
+```
+
+La respuesta de éxito es el `AnalysisResult` del Contrato 2 más un campo `cached` que indica si el resultado es un análisis recién ejecutado (`false`) o un resultado previamente persistido que se retorna directamente (`true`). Cuando `cached` es `true`, el endpoint no invocó Bedrock — simplemente leyó el resultado existente de `ContractAnalyses`.
+
+### Respuesta de error (HTTP 400 / 404 / 422 / 500 / 502 / 503 según el caso)
+
+```json
+{
+  "error_code": "string (uno de los valores del enum AnalyzeErrorCode)",
+  "message": "string",
+  "document_id": "string (uuid v4, opcional — presente cuando el document_id fue recibido correctamente)"
+}
+```
+
+### Reglas de Validación — Contrato 4
+
+- `error_code` es siempre uno de los 10 valores exactos listados en la tabla siguiente — nunca un string libre
+- `document_id` se incluye en la respuesta de error siempre que el request contenía un `document_id` válido (UUID v4 bien formado); se omite si el request no lo incluía o tenía formato inválido
+- Todas las respuestas (éxito y error) tienen `Content-Type: application/json`
+- `message` es siempre un string no vacío; su contenido es informativo para el frontend pero no debe ser parseado como dato estructurado
+- `cached` es siempre `true` o `false` en la respuesta de éxito; nunca está ausente en un HTTP 200
+
+### Tabla de error_codes
+
+| `error_code` | HTTP Status | Significado |
+|---|---|---|
+| `MISSING_DOCUMENT_ID` | 400 | El request no incluye `document_id` o está vacío |
+| `INVALID_DOCUMENT_ID` | 400 | El `document_id` no tiene formato UUID v4 válido |
+| `DOCUMENT_NOT_FOUND` | 404 | El `document_id` no existe en `ContractExtractions` (nunca fue ingresado o es un typo) |
+| `CONTEXT_TOO_LONG` | 422 | El `raw_text` excede el límite de contexto del modelo de Bedrock seleccionado |
+| `MODEL_RESPONSE_INVALID` | 422 | Bedrock retornó una respuesta que no es JSON válido o no cumple la estructura esperada |
+| `BEDROCK_TIMEOUT` | 503 | Bedrock no respondió dentro del timeout configurado |
+| `BEDROCK_THROTTLED` | 503 | Bedrock rechazó la solicitud por throttling (demasiadas requests concurrentes) |
+| `BEDROCK_SERVICE_ERROR` | 502 | Bedrock retornó un error de servicio no recuperable |
+| `PERSISTENCE_FAILURE` | 502 | Falla de infraestructura al escribir en DynamoDB `ContractAnalyses` |
+| `INTERNAL_ERROR` | 500 | Excepción no esperada — no expone detalles internos |
+
+### Modelo Pydantic de Referencia (Módulo 2 — backend)
+
+Implementar en `backend/analysis/models.py`:
+
+```python
+from __future__ import annotations
+from enum import Enum
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
+class AnalyzeErrorCode(str, Enum):
+    MISSING_DOCUMENT_ID = "MISSING_DOCUMENT_ID"
+    INVALID_DOCUMENT_ID = "INVALID_DOCUMENT_ID"
+    DOCUMENT_NOT_FOUND = "DOCUMENT_NOT_FOUND"
+    CONTEXT_TOO_LONG = "CONTEXT_TOO_LONG"
+    MODEL_RESPONSE_INVALID = "MODEL_RESPONSE_INVALID"
+    BEDROCK_TIMEOUT = "BEDROCK_TIMEOUT"
+    BEDROCK_THROTTLED = "BEDROCK_THROTTLED"
+    BEDROCK_SERVICE_ERROR = "BEDROCK_SERVICE_ERROR"
+    PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+class AnalyzeSuccessResponse(BaseModel):
+    """
+    Respuesta exitosa de POST /analyze (HTTP 200).
+    Extiende AnalysisResult del Contrato 2 con el campo `cached`.
+    """
+    document_id: str
+    summary_plain: str
+    risk_score: int = Field(ge=0, le=100)
+    clauses: list[Clause] = Field(default_factory=list)
+    overall_recommendation: str
+    cached: bool = False  # True si se retornó un resultado previamente persistido
+
+
+class AnalyzeErrorResponse(BaseModel):
+    """Respuesta de error de POST /analyze."""
+    error_code: AnalyzeErrorCode
+    message: str
+    document_id: Optional[str] = None
+```
+
+### Tipos TypeScript de Referencia (Módulo 3 — frontend)
+
+Implementar en `frontend/src/types/contract.ts`:
+
+```typescript
+export type AnalyzeErrorCode =
+  | "MISSING_DOCUMENT_ID"
+  | "INVALID_DOCUMENT_ID"
+  | "DOCUMENT_NOT_FOUND"
+  | "CONTEXT_TOO_LONG"
+  | "MODEL_RESPONSE_INVALID"
+  | "BEDROCK_TIMEOUT"
+  | "BEDROCK_THROTTLED"
+  | "BEDROCK_SERVICE_ERROR"
+  | "PERSISTENCE_FAILURE"
+  | "INTERNAL_ERROR";
+
+export interface AnalyzeSuccessResponse {
+  document_id: string;
+  summary_plain: string;
+  risk_score: number; // entero 0-100
+  clauses: Clause[];
+  overall_recommendation: string;
+  cached: boolean; // false = análisis fresco, true = resultado cacheado
+}
+
+export interface AnalyzeErrorResponse {
+  error_code: AnalyzeErrorCode;
+  message: string;
+  document_id?: string;
+}
+
+/** Tipo unión para el resultado de POST /analyze — usar con discriminación por status HTTP */
+export type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse;
+```
+
+---
+
 ## Flujo de Datos End-to-End
 
 ```
@@ -293,8 +444,10 @@ export type IngestResponse = IngestSuccessResponse | IngestErrorResponse;
 8. Lambda Analysis escribe en DynamoDB: ContractAnalyses
    [Contrato 2]
          ↓
-9. API Gateway → Frontend (Results page)
-   Frontend lee AnalysisResult y renderiza score, cláusulas y preguntas
+9. Lambda Analysis retorna respuesta HTTP al frontend
+   [Contrato 4 — éxito: AnalysisResult completo / error: { error_code, message, document_id? }]
+         ↓
+10. Frontend (Results page) renderiza score, cláusulas y preguntas
 ```
 
 ---
@@ -302,6 +455,6 @@ export type IngestResponse = IngestSuccessResponse | IngestErrorResponse;
 ## Notas para Implementadores
 
 - Los modelos Pydantic en `backend/ingestion/models.py` y `backend/analysis/models.py` deben reflejar **exactamente** los contratos definidos en este documento.
-- Los tipos TypeScript en `frontend/src/types/contract.ts` deben reflejar **exactamente** el Contrato 2 (respuestas de análisis) y el Contrato 3 (respuestas de ingesta).
+- Los tipos TypeScript en `frontend/src/types/contract.ts` deben reflejar **exactamente** el Contrato 2 (datos de análisis), el Contrato 3 (respuestas de ingesta) y el Contrato 4 (respuestas de análisis).
 - Si necesitás agregar un campo nuevo a cualquier contrato: abrí una discusión con el equipo, actualizá este archivo, commitealo en `main`, y notificá a todos antes de cambiar el código.
 - Los nombres de las tablas DynamoDB (`ContractExtractions`, `ContractAnalyses`) son los canónicos y deben usarse en `infra/template.yaml` y en el código.
