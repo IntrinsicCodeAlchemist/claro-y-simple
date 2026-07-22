@@ -556,49 +556,49 @@ class AnalysisError(Exception):
 
 *Una property es una característica o comportamiento que debe cumplirse en todas las ejecuciones válidas de un sistema — esencialmente, una declaración formal sobre lo que el sistema debe hacer. Las properties sirven como puente entre especificaciones legibles por humanos y garantías de corrección verificables por máquinas.*
 
-### Property 1: Risk score bounded invariant
+### Property 1: Límite acotado del risk score
 
 *Para cualquier* lista de cláusulas (incluyendo listas vacías), donde cada cláusula tiene un `risk_level` válido en `{"bajo", "medio", "alto"}`, la función `calculate_risk_score` SHALL producir un entero en el rango [0, 100] inclusive.
 
 **Validates: Requirements 8.1, 8.4**
 
-### Property 2: Risk score monotonicity
+### Property 2: Monotonicidad del risk score
 
 *Para cualquier* lista de cláusulas `L` y cualquier cláusula adicional `c` con un `risk_level` válido, el risk score de `L + [c]` SHALL ser mayor o igual al risk score de `L`.
 
 **Validates: Requirements 8.3**
 
-### Property 3: Risk score zero for empty clauses
+### Property 3: Risk score cero sin cláusulas
 
 *Para cualquier* invocación de `calculate_risk_score` con una lista vacía, el resultado SHALL ser exactamente 0.
 
 **Validates: Requirements 8.2**
 
-### Property 4: Cache round-trip fidelity
+### Property 4: Fidelidad del round-trip de caché
 
 *Para cualquier* `AnalysisResult` válido, serializarlo con `build_analysis_dynamodb_item` y luego deserializarlo con `deserialize_analysis_item` SHALL producir un dict cuyos campos (`document_id`, `summary_plain`, `risk_score`, `clauses`, `overall_recommendation`) sean equivalentes al original.
 
 **Validates: Requirements 9.1, 9.2**
 
-### Property 5: Invalid model response rejection
+### Property 5: Rechazo de respuesta inválida del modelo
 
 *Para cualquier* string que sea (a) JSON inválido, (b) JSON válido pero sin los campos requeridos (`summary_plain`, `clauses`, `overall_recommendation`), o (c) JSON válido con `category` fuera de ClauseCategory o `risk_level` fuera de RiskLevel, la función `parse_model_response` SHALL lanzar un error que resulte en `MODEL_RESPONSE_INVALID`.
 
 **Validates: Requirements 7.1, 7.2, 7.3**
 
-### Property 6: Valid model response parsing preserves data
+### Property 6: El parseo de respuesta válida preserva los datos
 
 *Para cualquier* string JSON bien formado que conforme al schema de `ModelResponse` (categorías válidas, risk_levels válidos, clause_text no vacío), la función `parse_model_response` SHALL retornar un objeto `ModelResponse` cuyos campos coincidan exactamente con el JSON de entrada.
 
 **Validates: Requirements 7.4**
 
-### Property 7: Invalid UUID rejection
+### Property 7: Rechazo de UUID inválido
 
 *Para cualquier* string que no coincida con el patrón regex UUID v4 `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, la función `validate_document_id` SHALL lanzar un error que resulte en `INVALID_DOCUMENT_ID`.
 
 **Validates: Requirements 1.2**
 
-### Property 8: Unexpected error safety
+### Property 8: Seguridad ante errores inesperados
 
 *Para cualquier* excepción inesperada lanzada durante la ejecución del handler, la respuesta HTTP SHALL tener status 500 con `error_code` igual a `INTERNAL_ERROR` y el body de la respuesta SHALL NO contener stack traces, nombres de variables internas, ni detalles de infraestructura.
 
