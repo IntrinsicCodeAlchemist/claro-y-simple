@@ -92,7 +92,7 @@ ENVIRONMENT=localstack pytest tests/test_integration.py -v -m integration
 El proyecto se divide en 3 módulos independientes que se comunican vía contratos de datos definidos en `.kiro/steering/interface-contracts.md`:
 
 1. **Ingestion** (`backend/ingestion/`): Recibe PDF → extrae texto → persiste en DynamoDB
-2. **Analysis** (`backend/analysis/`): Lee texto → analiza con Bedrock → genera resumen y score
+2. **Analysis** (`backend/analysis/`): Lee texto → analiza con Bedrock → genera resumen y score. Cachea resultados para evitar re-invocaciones a Bedrock (campo `cached: true/false` en la respuesta)
 3. **Frontend** (`frontend/`): UI para subir PDFs y visualizar resultados
 
 ## Contratos de interfaz
@@ -101,6 +101,7 @@ Los contratos entre módulos son fuente de verdad y no se modifican sin aprobaci
 - **Contrato 1**: Ingestion → Analysis (DynamoDB: `ContractExtractions`)
 - **Contrato 2**: Analysis → Frontend (DynamoDB: `ContractAnalyses`)
 - **Contrato 3**: Ingestion HTTP response → Frontend (POST /ingest)
+- **Contrato 4**: Analysis HTTP response → Frontend (POST /analyze)
 
 ## Contexto
 
