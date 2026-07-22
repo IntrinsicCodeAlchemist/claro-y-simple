@@ -76,3 +76,47 @@ class ConfigurationError(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
         super().__init__(message)
+
+
+# ---------------------------------------------------------------------------
+# BedrockError — Módulo 2: errores de comunicación con Amazon Bedrock
+# ---------------------------------------------------------------------------
+
+
+class BedrockErrorCode(str, Enum):
+    """Códigos de error para fallos de comunicación con Bedrock."""
+    BEDROCK_TIMEOUT = "BEDROCK_TIMEOUT"
+    BEDROCK_THROTTLED = "BEDROCK_THROTTLED"
+    BEDROCK_SERVICE_ERROR = "BEDROCK_SERVICE_ERROR"
+
+
+class BedrockError(Exception):
+    """Raised when Bedrock invocation fails."""
+
+    def __init__(self, error_code: BedrockErrorCode, message: str) -> None:
+        self.error_code = error_code
+        self.message = message
+        super().__init__(message)
+
+
+# ---------------------------------------------------------------------------
+# AnalysisError — Módulo 2: errores de lógica de análisis
+# ---------------------------------------------------------------------------
+
+
+class AnalysisErrorCode(str, Enum):
+    """Códigos de error para fallos en el flujo de análisis."""
+    MISSING_DOCUMENT_ID = "MISSING_DOCUMENT_ID"
+    INVALID_DOCUMENT_ID = "INVALID_DOCUMENT_ID"
+    DOCUMENT_NOT_FOUND = "DOCUMENT_NOT_FOUND"
+    CONTEXT_TOO_LONG = "CONTEXT_TOO_LONG"
+    MODEL_RESPONSE_INVALID = "MODEL_RESPONSE_INVALID"
+
+
+class AnalysisError(Exception):
+    """Raised by analyzer when analysis logic fails."""
+
+    def __init__(self, error_code: AnalysisErrorCode, message: str) -> None:
+        self.error_code = error_code
+        self.message = message
+        super().__init__(message)

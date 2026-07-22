@@ -1,0 +1,14 @@
+# =============================================================================
+# Claro y Simple — Módulo 2: Motor de Análisis
+# Dependencias de producción y desarrollo
+# =============================================================================
+
+# --- Producción ---
+pydantic>=2.0
+aws-lambda-powertools
+boto3
+
+# --- Desarrollo y testing ---
+hypothesis
+pytest
+moto[dynamodb]
