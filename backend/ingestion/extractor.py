@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import pdfplumber
 from aws_lambda_powertools import Logger
-
 from shared.aws_utils import get_boto3_client
 from shared.exceptions import ExtractionError, ExtractionErrorCode
 
@@ -63,7 +62,7 @@ def extract_text(
                 "pdfplumber produjo texto vacío, usando fallback Textract",
                 document_id=document_id,
             )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.error(
             "pdfplumber lanzó excepción",
             document_id=document_id,

@@ -1,22 +1,22 @@
 """Tests unitarios del extractor (pdfplumber y Textract)."""
 import uuid
 from datetime import datetime, timezone
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
+from botocore.exceptions import ClientError
 from hypothesis import given, strategies as st
 from pydantic import ValidationError as PydanticValidationError
-
-from botocore.exceptions import ClientError
+from shared.exceptions import ExtractionError, ExtractionErrorCode
 
 from ingestion.extractor import extract_text
 from ingestion.models import (
-    ExtractionResult,
     ExtractionMetadata,
+    ExtractionResult,
     build_dynamodb_item,
     deserialize_dynamodb_item,
 )
-from shared.exceptions import ExtractionError, ExtractionErrorCode
 
 
 class TestExtractTextPdfplumberSuccess:
@@ -56,7 +56,7 @@ class TestExtractTextPdfplumberSuccess:
 class TestExtractTextTextractFallback:
     """Fallback a Textract cuando pdfplumber no produce texto."""
 
-    MOCK_LINE_BLOCKS = [
+    MOCK_LINE_BLOCKS: ClassVar[list] = [
         {"BlockType": "LINE", "Text": "Términos del contrato", "Page": 1},
         {"BlockType": "LINE", "Text": "Cláusula de confidencialidad", "Page": 1},
         {"BlockType": "LINE", "Text": "Firma del usuario", "Page": 2},

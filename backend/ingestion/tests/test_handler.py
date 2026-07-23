@@ -5,9 +5,9 @@ import re
 from unittest.mock import patch
 
 from botocore.exceptions import ClientError
-
-from ingestion.handler import lambda_handler, MAX_FILE_SIZE_BYTES
 from shared.exceptions import ExtractionError, ExtractionErrorCode
+
+from ingestion.handler import MAX_FILE_SIZE_BYTES, lambda_handler
 
 
 class TestHandlerSuccessTextExtraction:
@@ -127,8 +127,8 @@ def build_multipart_event(
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="{field_name}"; filename="{filename}"\r\n'
         f"Content-Type: {part_content_type}\r\n\r\n"
-    ).encode("utf-8")
-    footer = f"\r\n--{boundary}--\r\n".encode("utf-8")
+    ).encode()
+    footer = f"\r\n--{boundary}--\r\n".encode()
     body = header + pdf_bytes + footer
 
     return {

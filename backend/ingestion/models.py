@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -74,7 +74,7 @@ class IngestErrorResponse(BaseModel):
     """Respuesta de error de POST /ingest (HTTP 4xx / 5xx)."""
     error_code: IngestErrorCode
     message: str
-    document_id: Optional[str] = None  # solo presente cuando error_code es EMPTY_EXTRACTION
+    document_id: str | None = None  # solo presente cuando error_code es EMPTY_EXTRACTION
 
 
 # ============================================================================
