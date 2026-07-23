@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Claro y Simple — Módulo 1: Ingesta y Extracción.
-  Recibe un PDF, extrae su texto y persiste el resultado en DynamoDB.
+  Claro y Simple — Infraestructura serverless.
+  Módulo 1: Ingesta y extracción de texto desde PDFs.
+  Módulo 2: Motor de análisis de contratos con Amazon Bedrock.
 
 # ---------------------------------------------------------------------------
 # Parámetros
@@ -147,6 +148,69 @@ Resources:
             Method: POST
             RestApiId: !Ref ClaroYSimpleApi
 
+  # -------------------------------------------------------------------------
+  # Tabla DynamoDB — ContractAnalyses (Contrato 2)
+  # -------------------------------------------------------------------------
+
+  ContractAnalysesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ContractAnalyses
+      AttributeDefinitions:
+        - AttributeName: document_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: document_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+      Tags:
+        - Key: project
+          Value: hackaton
+
+  # -------------------------------------------------------------------------
+  # Función Lambda — Analysis handler (Módulo 2)
+  # -------------------------------------------------------------------------
+
+  AnalysisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      Runtime: python3.12
+      CodeUri: ../backend/analysis/
+      Timeout: 60
+      MemorySize: 256
+      Tags:
+        project: hackaton
+      Environment:
+        Variables:
+          EXTRACTIONS_TABLE_NAME: !Ref ContractExtractionsTable
+          ANALYSES_TABLE_NAME: !Ref ContractAnalysesTable
+          BEDROCK_MODEL_ID: anthropic.claude-3-haiku-20240307-v1:0
+          MAX_CONTEXT_CHARS: "150000"
+          BEDROCK_TIMEOUT_SECONDS: "45"
+          ENVIRONMENT: !Ref EnvironmentName
+          LOG_LEVEL: INFO
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ContractExtractionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ContractAnalysesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        AnalyzeApi:
+          Type: Api
+          Properties:
+            Path: /analyze
+            Method: POST
+            RestApiId: !Ref ClaroYSimpleApi
+
 # ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
@@ -159,3 +223,15 @@ Outputs:
   IngestionFunctionArn:
     Description: ARN de la función Lambda de ingesta
     Value: !GetAtt IngestionFunction.Arn
+
+  AnalysisApiUrl:
+    Description: URL base del endpoint de análisis
+    Value: !Sub "https://${ClaroYSimpleApi}.execute-api.${AWS::Region}.amazonaws.com/${EnvironmentName}/analyze"
+
+  AnalysisFunctionArn:
+    Description: ARN de la función Lambda de análisis
+    Value: !GetAtt AnalysisFunction.Arn
+
+  ContractAnalysesTableName:
+    Description: Nombre de la tabla DynamoDB de análisis
+    Value: !Ref ContractAnalysesTable
