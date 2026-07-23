@@ -583,3 +583,139 @@ def test_internal_error_no_leak(mock_dynamodb, mock_bedrock, mock_logger, lambda
 
     # El logger debe haber capturado el traceback internamente
     mock_logger.exception.assert_called_once()
+
+
+
+# ============================================================================
+# Fase 6 — Property-based tests con Hypothesis (Task 17)
+# ============================================================================
+
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
+
+from backend.analysis.analyzer import calculate_risk_score, validate_document_id
+from backend.analysis.models import (
+    AnalysisResult,
+    Clause,
+    build_analysis_dynamodb_item,
+    deserialize_analysis_item,
+)
+from backend.shared.exceptions import AnalysisError
+
+
+# Strategies reutilizables
+_risk_levels = st.sampled_from(["bajo", "medio", "alto"])
+_categories = st.sampled_from([
+    "renovacion_automatica", "multa", "jurisdiccion", "cesion_datos", "otro"
+])
+
+_clause_strategy = st.builds(
+    Clause,
+    clause_text=st.text(min_size=1, max_size=100),
+    category=_categories,
+    risk_level=_risk_levels,
+    explanation=st.text(min_size=0, max_size=200),
+    suggested_question=st.text(min_size=0, max_size=200),
+)
+
+
+@settings(max_examples=100)
+@given(clauses=st.lists(_clause_strategy, min_size=0, max_size=20))
+def test_property_risk_score_bounded(clauses):
+    """Feature: analysis, Property 1: Risk score bounded invariant.
+
+    Para cualquier lista de cláusulas con risk_levels válidos,
+    calculate_risk_score produce un entero en [0, 100].
+    """
+    score = calculate_risk_score(clauses)
+    assert isinstance(score, int)
+    assert 0 <= score <= 100
+
+
+@settings(max_examples=100)
+@given(
+    clauses=st.lists(_clause_strategy, min_size=0, max_size=15),
+    extra_clause=_clause_strategy,
+)
+def test_property_risk_score_monotonic(clauses, extra_clause):
+    """Feature: analysis, Property 2: Risk score monotonicity.
+
+    Para cualquier lista L y cláusula adicional c,
+    risk_score(L + [c]) >= risk_score(L).
+    """
+    score_base = calculate_risk_score(clauses)
+    score_extended = calculate_risk_score(clauses + [extra_clause])
+    assert score_extended >= score_base
+
+
+def test_property_risk_score_zero_empty():
+    """Feature: analysis, Property 3: Risk score zero for empty clauses.
+
+    calculate_risk_score([]) == 0.
+    """
+    assert calculate_risk_score([]) == 0
+
+
+@settings(max_examples=100)
+@given(
+    document_id=st.from_regex(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    ),
+    summary_plain=st.text(min_size=1, max_size=200),
+    risk_score=st.integers(min_value=0, max_value=100),
+    clauses=st.lists(_clause_strategy, min_size=0, max_size=5),
+    overall_recommendation=st.text(min_size=1, max_size=200),
+)
+def test_property_serialization_round_trip(
+    document_id, summary_plain, risk_score, clauses, overall_recommendation
+):
+    """Feature: analysis, Property 4: Cache round-trip fidelity.
+
+    Para cualquier AnalysisResult válido, serializar y deserializar
+    produce campos equivalentes al original.
+    """
+    result = AnalysisResult(
+        document_id=document_id,
+        summary_plain=summary_plain,
+        risk_score=risk_score,
+        clauses=clauses,
+        overall_recommendation=overall_recommendation,
+    )
+
+    dynamo_item = build_analysis_dynamodb_item(result)
+    deserialized = deserialize_analysis_item(dynamo_item)
+
+    assert deserialized["document_id"] == result.document_id
+    assert deserialized["summary_plain"] == result.summary_plain
+    assert deserialized["risk_score"] == result.risk_score
+    assert deserialized["overall_recommendation"] == result.overall_recommendation
+    assert len(deserialized["clauses"]) == len(result.clauses)
+
+    for orig, deser in zip(result.clauses, deserialized["clauses"]):
+        assert deser["clause_text"] == orig.clause_text
+        assert deser["category"] == orig.category
+        assert deser["risk_level"] == orig.risk_level
+        assert deser["explanation"] == orig.explanation
+        assert deser["suggested_question"] == orig.suggested_question
+
+
+@settings(max_examples=100)
+@given(
+    s=st.text(min_size=1, max_size=50).filter(
+        lambda x: not __import__("re").match(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", x
+        )
+    )
+)
+def test_property_invalid_uuid_rejected(s):
+    """Feature: analysis, Property 7: Invalid UUID rejection.
+
+    Para cualquier string que no sea UUID v4 válido,
+    validate_document_id lanza AnalysisError.
+    """
+    try:
+        validate_document_id({"document_id": s})
+        # Si no lanza, es un bug
+        assert False, f"Should have raised AnalysisError for '{s}'"
+    except AnalysisError as e:
+        assert e.error_code.value in ("MISSING_DOCUMENT_ID", "INVALID_DOCUMENT_ID")
