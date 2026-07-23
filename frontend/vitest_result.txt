@@ -1,0 +1,10 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mc:/Users/Usuario/Documents/claro-y-simple/frontend[39m
+
+ [32m✓[39m src/app.test.ts[2m > [22msetup[2m > [22mvitest is configured
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 14:36:45
+[2m   Duration [22m 2.99s[2m (transform 46ms, setup 246ms, collect 61ms, tests 5ms, environment 1.20s, prepare 182ms)[22m
+

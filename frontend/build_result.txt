@@ -1,0 +1,14 @@
+
+> claro-y-simple-frontend@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 34 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.56 kB[22m[1m[22m[2m │ gzip:  0.35 kB[22m
+[2mdist/[22m[35massets/index-CcAvFtRq.css  [39m[1m[2m  9.24 kB[22m[1m[22m[2m │ gzip:  2.47 kB[22m
+[2mdist/[22m[36massets/index-Buc-vdOv.js   [39m[1m[2m158.80 kB[22m[1m[22m[2m │ gzip: 51.75 kB[22m
+[32m✓ built in 2.60s[39m
+BUILD_OK  

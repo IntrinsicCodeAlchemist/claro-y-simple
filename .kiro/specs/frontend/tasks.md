@@ -55,14 +55,14 @@ flowchart LR
 
 ### Fase 1 — Scaffolding y configuración
 
-- [ ] 1. Inicializar proyecto Vite + React + TypeScript + Tailwind
+- [x] 1. Inicializar proyecto Vite + React + TypeScript + Tailwind
 
   **Archivos**: `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/tailwind.config.ts`, `frontend/postcss.config.js`, `frontend/src/index.css`, `frontend/index.html`
   **Requisitos**: Req 11 (infraestructura del API Client), Tech Steering (strict mode, Vitest)
   **Descripción**: Ejecutar `npm create vite@latest` con template react-ts. Instalar y configurar Tailwind CSS (tailwind.config.ts, postcss.config.js, directivas @tailwind en index.css). Configurar tsconfig.json con `strict: true` y path aliases (`@/` → `src/`). Configurar Vitest en vite.config.ts con `@testing-library/react`, `@testing-library/user-event`, y `fast-check` como dependencias de dev. Crear estructura de carpetas: `src/components/`, `src/pages/`, `src/api/`, `src/types/`, `src/constants/`, `src/utils/`. Agregar scripts en package.json: `dev`, `build`, `test`, `lint`.
   **Criterio de completitud**: `npm run build` compila sin errores; `npm run test -- --run` ejecuta sin fallar (0 tests pero runner funciona); Tailwind genera utilidades en el bundle.
 
-- [ ] 2. Implementar tipos y constantes compartidas
+- [x] 2. Implementar tipos y constantes compartidas
 
   **Archivos**: `frontend/src/types/contract.ts`, `frontend/src/constants/errorMessages.ts`, `frontend/src/constants/categories.ts`, `frontend/src/utils/riskDisplay.ts`
   **Requisitos**: Req 4.1–4.10, Req 5.1–5.10, Req 6.2–6.5, Req 7.3, Req 7.7
@@ -71,7 +71,7 @@ flowchart LR
 
 ### Fase 2 — API Client
 
-- [ ] 3. Implementar API Client
+- [x] 3. Implementar API Client
 
   **Archivos**: `frontend/src/api/client.ts`, `frontend/.env.example`
   **Requisitos**: Req 11.1–11.6
@@ -80,42 +80,42 @@ flowchart LR
 
 ### Fase 3 — Camino feliz
 
-- [ ] 4. Implementar UploadZone.tsx
+- [x] 4. Implementar UploadZone.tsx
 
   **Archivos**: `frontend/src/components/UploadZone.tsx`
   **Requisitos**: Req 1.1–1.5, Req 2.2
   **Descripción**: Componente con props `{ onFileSelected: (file: File) => void; disabled: boolean }`. Estado interno `idle | dragOver`. En idle: zona con instrucción de drag & drop y botón "Seleccionar archivo". En dragOver: borde coloreado y fondo highlight. Cuando disabled=true: deshabilitar toda interacción (opacity reducida, pointer-events none). Validación client-side al recibir archivo: si no es .pdf → mostrar "Solo se aceptan archivos en formato PDF" inline; si supera 10 MB → mostrar "El archivo supera el tamaño máximo permitido (10 MB)" inline; si es válido → llamar `onFileSelected(file)`. Estilos según Dirección Visual (espaciado generoso, fondo claro, transiciones sutiles).
   **Criterio de completitud**: Drag & drop funcional; file picker funcional; validaciones client-side muestran mensajes correctos; estado disabled bloquea interacción; estado dragOver muestra retroalimentación visual.
 
-- [ ] 5. Implementar RiskScore.tsx
+- [x] 5. Implementar RiskScore.tsx
 
   **Archivos**: `frontend/src/components/RiskScore.tsx`
   **Requisitos**: Req 6.1–6.5, Req 8.1–8.3
   **Descripción**: Componente con props `{ riskScore: number; clauses: Clause[] }`. Muestra el valor numérico prominente (ej: "75/100") con subtítulo "Puntaje acumulado". Usa `deriveRiskDisplay(clauses)` para determinar color y etiqueta. Aplica las clases Tailwind exactas de la paleta de riesgo (text-red-600, text-amber-500, text-green-600). Subtítulo bajo la etiqueta: "Basado en la cláusula más grave detectada". Caso clauses vacío: verde, "Riesgo bajo", subtítulo "No se detectaron cláusulas de riesgo".
   **Criterio de completitud**: Valor numérico visible; color y etiqueta correctos para alto/medio/bajo/vacío; subtítulos explicativos presentes; paleta exacta de Dirección Visual aplicada.
 
-- [ ] 6. Implementar ClauseCard.tsx y SuggestedQuestions.tsx
+- [x] 6. Implementar ClauseCard.tsx y SuggestedQuestions.tsx
 
   **Archivos**: `frontend/src/components/ClauseCard.tsx`, `frontend/src/components/SuggestedQuestions.tsx`
   **Requisitos**: Req 7.1–7.6, Req 12.1–12.3
   **Descripción**: ClauseCard: props `{ clause: Clause }`. Renderiza clause_text como cita (estilo blockquote o con comillas), badge de categoría usando CATEGORY_LABELS en español, indicador visual de color por risk_level (paleta exacta: bg-red-50/border-red-600 para alto, bg-amber-50/border-amber-500 para medio, bg-green-50/border-green-600 para bajo), explanation como texto explicativo, suggested_question como pregunta sugerida. SuggestedQuestions: props `{ clauses: Clause[] }`. Filtra cláusulas con suggested_question no vacío. Renderiza lista de preguntas con badge de categoría asociado. Si clauses es vacío → retorna null.
   **Criterio de completitud**: ClauseCard muestra todos los campos con colores correctos; SuggestedQuestions lista preguntas con badge; SuggestedQuestions retorna null con array vacío.
 
-- [ ] 7. Implementar Results.tsx
+- [x] 7. Implementar Results.tsx
 
   **Archivos**: `frontend/src/pages/Results.tsx`
   **Requisitos**: Req 6.1–6.5, Req 7.7, Req 8.1–8.3, Req 9.1–9.3, Req 10.1–10.3, Req 12.1–12.3
   **Descripción**: Página que recibe `AnalyzeSuccessResponse` vía state del router (o props). Secciones en orden: (1) nota de caché si cached=true ("Este resultado corresponde a un análisis previo del mismo documento") como info neutra, (2) summary_plain como resumen, (3) RiskScore con risk_score y clauses, (4) cláusulas ordenadas por risk_level (alto→medio→bajo) usando sortClausesByRisk, (5) SuggestedQuestions si hay cláusulas, (6) overall_recommendation diferenciada visualmente. Caso clauses vacío: mensaje positivo "No se encontraron cláusulas de riesgo en tu contrato" con ícono positivo, sin sección de preguntas, pero sí risk_score, summary_plain y overall_recommendation.
   **Criterio de completitud**: Todas las secciones renderizan en el orden correcto; nota de caché aparece solo cuando cached=true; cláusulas ordenadas por gravedad; caso vacío muestra mensaje positivo sin preguntas.
 
-- [ ] 8. Implementar Home.tsx con flujo completo y routing
+- [x] 8. Implementar Home.tsx con flujo completo y routing
 
   **Archivos**: `frontend/src/pages/Home.tsx`, `frontend/src/App.tsx`, `frontend/src/main.tsx`
   **Requisitos**: Req 1.5, Req 2.1–2.3, Req 3.1–3.3
   **Descripción**: Home.tsx con máquina de estados: idle → uploading → analyzing → success/error. En idle: muestra UploadZone habilitado. En uploading: spinner Tailwind (`animate-spin border-2 rounded-full w-6 h-6`) + "Subiendo tu contrato...", UploadZone disabled. En analyzing: spinner + "Analizando tu contrato... Esto puede tomar unos segundos", UploadZone disabled. Orquestación: onFileSelected → uploadContract(file) → si éxito: analyzeContract(documentId) → si éxito: navegar a Results con datos. Configurar React Router (react-router-dom) en App.tsx con rutas `/` (Home) y `/results` (Results). Main.tsx con BrowserRouter y render del App.
   **Criterio de completitud**: Flujo completo funcional idle→uploading→analyzing→results; estados de carga muestran mensajes correctos; navegación a Results pasa los datos; UploadZone se deshabilita durante carga.
 
-- [ ] 9. Checkpoint — Verificar camino feliz end-to-end
+- [x] 9. Checkpoint — Verificar camino feliz end-to-end
 
   **Archivos**: —
   **Requisitos**: Req 1–3, Req 6–10
@@ -124,14 +124,14 @@ flowchart LR
 
 ### Fase 4 — Manejo de errores
 
-- [ ] 10. Implementar manejo de errores de ingesta
+- [x] 10. Implementar manejo de errores de ingesta
 
   **Archivos**: `frontend/src/pages/Home.tsx`
   **Requisitos**: Req 4.1–4.11
   **Descripción**: Cuando uploadContract falla con un error tipado que contiene error_code de IngestErrorCode: mapear a mensaje amigable usando INGEST_ERROR_MESSAGES. Renderizar el mensaje de error en Home con estilo de alerta. Mostrar botón "Intentar de nuevo" que vuelve al estado idle (el usuario puede seleccionar un nuevo archivo). Si el error es de red (sin error_code): mostrar "No se pudo conectar con el servidor. Verificá tu conexión a internet." con el mismo botón de retry.
   **Criterio de completitud**: Los 10 error_codes de ingesta muestran su mensaje correcto; botón "Intentar de nuevo" vuelve a idle; error de red muestra mensaje genérico.
 
-- [ ] 11. Implementar manejo de errores de análisis con retry diferenciado
+- [x] 11. Implementar manejo de errores de análisis con retry diferenciado
 
   **Archivos**: `frontend/src/pages/Home.tsx`
   **Requisitos**: Req 5.1–5.11
@@ -168,7 +168,7 @@ flowchart LR
   **Descripción**: Property 1 (deriveRiskDisplay): para cualquier array de Clause generado por fast-check, si al menos una tiene risk_level "alto" → retorna rojo, si ninguna alto pero alguna "medio" → retorna amber, si todas "bajo" o vacío → retorna green. Property 2 (exhaustividad de error_codes): para cada valor de IngestErrorCode y AnalyzeErrorCode (20 totales), el mapeo retorna string no vacío. Property 3 (retry transitorios): para cualquier error transitorio de análisis, la acción de retry reutiliza el document_id sin volver a idle. Property 4 (ordenamiento): para cualquier array de cláusulas con risk_levels mixtos, sortClausesByRisk produce un array donde todas las "alto" preceden a "medio" y todas las "medio" preceden a "bajo". Property 5 (preguntas sugeridas): para cualquier array de cláusulas, la cantidad de preguntas mostradas = cantidad de cláusulas con suggested_question no vacío.
   **Criterio de completitud**: Los 5 property tests pasan con mínimo 100 iteraciones cada uno; cada test referencia su propiedad del diseño.
 
-- [ ] 16. Checkpoint — Verificar que todos los tests pasan
+- [x] 16. Checkpoint — Verificar que todos los tests pasan
 
   **Archivos**: —
   **Requisitos**: Todos
@@ -177,7 +177,7 @@ flowchart LR
 
 ### Fase 6 — Polish y baja prioridad
 
-- [ ] 17. Refinamientos finales
+- [x] 17. Refinamientos finales
 
   **Archivos**: `frontend/index.html`, `frontend/.env.example`, `frontend/README.md`
   **Requisitos**: Tech Steering (strict mode, sin any injustificado)

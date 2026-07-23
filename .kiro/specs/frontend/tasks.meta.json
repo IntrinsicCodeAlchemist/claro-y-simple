@@ -1,0 +1,166 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Inicializar proyecto Vite + React + TypeScript + Tailwind": [
+      {
+        "executionId": "edc36ab7-5534-42ee-8968-04f6c611b952",
+        "chatSessionId": "sess_4ca87b01-d8a4-4514-a937-20d0964e6984",
+        "timestamp": 1784821836071
+      },
+      {
+        "executionId": "edc36ab7-5534-42ee-8968-04f6c611b952",
+        "chatSessionId": "sess_4ca87b01-d8a4-4514-a937-20d0964e6984",
+        "timestamp": 1784822791348
+      }
+    ],
+    "2. Implementar tipos y constantes compartidas": [
+      {
+        "executionId": "fa3fb150-304d-46b3-a5f4-5fecad5feb49",
+        "chatSessionId": "sess_d4bf5051-45ae-41a3-9977-7a562173fb8c",
+        "timestamp": 1784823035514
+      },
+      {
+        "executionId": "fa3fb150-304d-46b3-a5f4-5fecad5feb49",
+        "chatSessionId": "sess_d4bf5051-45ae-41a3-9977-7a562173fb8c",
+        "timestamp": 1784823273394
+      }
+    ],
+    "3. Implementar API Client": [
+      {
+        "executionId": "48a14a90-dadf-4961-a3fb-3387af382ee7",
+        "chatSessionId": "sess_512c3a47-9833-4218-b0aa-97ea1e5ea35d",
+        "timestamp": 1784823407925
+      },
+      {
+        "executionId": "48a14a90-dadf-4961-a3fb-3387af382ee7",
+        "chatSessionId": "sess_512c3a47-9833-4218-b0aa-97ea1e5ea35d",
+        "timestamp": 1784823647703
+      }
+    ],
+    "4. Implementar UploadZone.tsx": [
+      {
+        "executionId": "8514c1d6-785c-48a4-be80-843e745190c4",
+        "chatSessionId": "sess_4f8dfdae-f2c7-426c-82d5-dd3f34ef0c3d",
+        "timestamp": 1784825274947
+      },
+      {
+        "executionId": "8514c1d6-785c-48a4-be80-843e745190c4",
+        "chatSessionId": "sess_4f8dfdae-f2c7-426c-82d5-dd3f34ef0c3d",
+        "timestamp": 1784825495774
+      }
+    ],
+    "5. Implementar RiskScore.tsx": [
+      {
+        "executionId": "a339b4a4-decc-4173-82e5-8c18dc50c938",
+        "chatSessionId": "sess_88b306b3-c22e-46ef-8a76-79644c7f1eac",
+        "timestamp": 1784825515829
+      },
+      {
+        "executionId": "a339b4a4-decc-4173-82e5-8c18dc50c938",
+        "chatSessionId": "sess_88b306b3-c22e-46ef-8a76-79644c7f1eac",
+        "timestamp": 1784825776967
+      }
+    ],
+    "6. Implementar ClauseCard.tsx y SuggestedQuestions.tsx": [
+      {
+        "executionId": "b46a301d-b192-4e34-be16-1b6dc75304c1",
+        "chatSessionId": "sess_3ba73de0-dd70-49b6-97c8-8bf73830e4d5",
+        "timestamp": 1784827018133
+      },
+      {
+        "executionId": "b46a301d-b192-4e34-be16-1b6dc75304c1",
+        "chatSessionId": "sess_3ba73de0-dd70-49b6-97c8-8bf73830e4d5",
+        "timestamp": 1784827203817
+      }
+    ],
+    "7. Implementar Results.tsx": [
+      {
+        "executionId": "15165ccd-94d1-4672-890f-b292a5c34df5",
+        "chatSessionId": "sess_00710bb4-ef4f-4cc2-b3af-6e261629da31",
+        "timestamp": 1784827566091
+      },
+      {
+        "executionId": "15165ccd-94d1-4672-890f-b292a5c34df5",
+        "chatSessionId": "sess_00710bb4-ef4f-4cc2-b3af-6e261629da31",
+        "timestamp": 1784827731472
+      }
+    ],
+    "8. Implementar Home.tsx con flujo completo y routing": [
+      {
+        "executionId": "1f1150ca-99e8-4805-aa77-3661005dc239",
+        "chatSessionId": "sess_b4808887-28e3-4787-8f25-34b6f3ddd4a1",
+        "timestamp": 1784827895495
+      },
+      {
+        "executionId": "1f1150ca-99e8-4805-aa77-3661005dc239",
+        "chatSessionId": "sess_b4808887-28e3-4787-8f25-34b6f3ddd4a1",
+        "timestamp": 1784828061429
+      }
+    ],
+    "9. Checkpoint — Verificar camino feliz end-to-end": [
+      {
+        "executionId": "61fb687c-ae87-46b0-85ba-0bca214b4a13",
+        "chatSessionId": "sess_3b370380-c3e3-4f4c-90e8-1c0dcc0e3758",
+        "timestamp": 1784828103524
+      },
+      {
+        "executionId": "61fb687c-ae87-46b0-85ba-0bca214b4a13",
+        "chatSessionId": "sess_3b370380-c3e3-4f4c-90e8-1c0dcc0e3758",
+        "timestamp": 1784828375097
+      }
+    ],
+    "10. Implementar manejo de errores de ingesta": [
+      {
+        "executionId": "d05357f5-dc73-444a-ad92-291a95497e45",
+        "chatSessionId": "sess_5175d55b-9d58-4320-bbc1-d2c74a01b204",
+        "timestamp": 1784828534422
+      },
+      {
+        "executionId": "d05357f5-dc73-444a-ad92-291a95497e45",
+        "chatSessionId": "sess_5175d55b-9d58-4320-bbc1-d2c74a01b204",
+        "timestamp": 1784828715480
+      }
+    ],
+    "11. Implementar manejo de errores de análisis con retry diferenciado": [
+      {
+        "executionId": "1f49ca61-40ef-42a9-9ddb-76b2c6e6e767",
+        "chatSessionId": "sess_f523fd4e-aa94-44dc-8eaf-498691fa9db2",
+        "timestamp": 1784828785873
+      },
+      {
+        "executionId": "1f49ca61-40ef-42a9-9ddb-76b2c6e6e767",
+        "chatSessionId": "sess_f523fd4e-aa94-44dc-8eaf-498691fa9db2",
+        "timestamp": 1784828955512
+      }
+    ],
+    "16. Checkpoint — Verificar que todos los tests pasan": [
+      {
+        "executionId": "6e93ab59-ed69-4df0-9831-a4c85f705eaf",
+        "chatSessionId": "sess_40076f54-eb06-4300-a7bb-0760f1779beb",
+        "timestamp": 1784829260547
+      },
+      {
+        "executionId": "261224b8-759d-44bc-b9e6-fde616451fae",
+        "chatSessionId": "sess_c8d695ff-41a0-47e3-af21-26e5bb1968a8",
+        "timestamp": 1784831825545
+      },
+      {
+        "executionId": "261224b8-759d-44bc-b9e6-fde616451fae",
+        "chatSessionId": "sess_c8d695ff-41a0-47e3-af21-26e5bb1968a8",
+        "timestamp": 1784833062194
+      }
+    ],
+    "17. Refinamientos finales": [
+      {
+        "executionId": "a15897d6-365d-458e-b74b-1963546f3124",
+        "chatSessionId": "sess_31a0468d-6883-4788-b7c0-8e39c82e075c",
+        "timestamp": 1784833121906
+      },
+      {
+        "executionId": "a15897d6-365d-458e-b74b-1963546f3124",
+        "chatSessionId": "sess_31a0468d-6883-4788-b7c0-8e39c82e075c",
+        "timestamp": 1784833503489
+      }
+    ]
+  }
+}
