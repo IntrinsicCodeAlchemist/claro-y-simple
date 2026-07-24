@@ -21,6 +21,13 @@ Parameters:
       Modo del entorno. 'localstack' usa endpoints emulados localmente;
       'development' y 'production' apuntan a AWS real.
 
+  BedrockModelId:
+    Type: String
+    Description: >
+      Model ID (o inference profile ID) de Bedrock a usar por AnalysisFunction.
+      Verificar disponibilidad regional y si requiere inference profile antes de
+      cada deploy — el catálogo de Bedrock cambia con frecuencia.
+
 # ---------------------------------------------------------------------------
 # Mappings
 # ---------------------------------------------------------------------------
@@ -188,7 +195,7 @@ Resources:
         Variables:
           EXTRACTIONS_TABLE_NAME: !Ref ContractExtractionsTable
           ANALYSES_TABLE_NAME: !Ref ContractAnalysesTable
-          BEDROCK_MODEL_ID: anthropic.claude-3-haiku-20240307-v1:0
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
           MAX_CONTEXT_CHARS: "150000"
           BEDROCK_TIMEOUT_SECONDS: "45"
           ENVIRONMENT: !Ref EnvironmentName

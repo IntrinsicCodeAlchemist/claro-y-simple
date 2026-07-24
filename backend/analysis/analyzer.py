@@ -41,8 +41,13 @@ _UUID_V4_REGEX = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 )
 
+_BEDROCK_TIMEOUT_SECONDS = int(os.environ.get("BEDROCK_TIMEOUT_SECONDS", "45"))
+
 _dynamodb_client = get_boto3_client("dynamodb")
-_bedrock_client = get_boto3_client("bedrock-runtime")
+_bedrock_client = get_boto3_client(
+    "bedrock-runtime",
+    config=Config(read_timeout=_BEDROCK_TIMEOUT_SECONDS),
+)
 
 
 # ============================================================================
@@ -202,7 +207,6 @@ def invoke_bedrock(prompt: str) -> str:
             BEDROCK_SERVICE_ERROR para otros errores de servicio.
     """
     model_id = os.environ["BEDROCK_MODEL_ID"]
-    timeout_seconds = int(os.environ["BEDROCK_TIMEOUT_SECONDS"])
 
     payload = {
         "messages": [{"role": "user", "content": prompt}],
@@ -216,7 +220,6 @@ def invoke_bedrock(prompt: str) -> str:
             modelId=model_id,
             accept="application/json",
             contentType="application/json",
-            config=Config(read_timeout=timeout_seconds),
         )
     except ReadTimeoutError:
         raise BedrockError(

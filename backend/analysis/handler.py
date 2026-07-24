@@ -143,11 +143,18 @@ def lambda_handler(event: dict, context: object) -> dict:
 
     except AnalysisError as exc:
         status_code = _ANALYSIS_ERROR_STATUS.get(exc.error_code, 500)
-        logger.warning(
-            "Error de análisis",
-            error_code=exc.error_code.value,
-            error_message=exc.message,
-        )
+        if exc.error_code == AnalysisErrorCode.MODEL_RESPONSE_INVALID:
+            logger.error(
+                "Respuesta del modelo inválida",
+                error_code=exc.error_code.value,
+                error_message=exc.message,
+            )
+        else:
+            logger.warning(
+                "Error de análisis",
+                error_code=exc.error_code.value,
+                error_message=exc.message,
+            )
         error_body: dict = {
             "error_code": exc.error_code.value,
             "message": exc.message,
