@@ -66,12 +66,25 @@ Resources:
       # API Key requerida para control de costos durante el hackathon
       Auth:
         ApiKeyRequired: true
+        AddApiKeyRequiredToCorsPreflight: false
       # Throttling: rate 10 req/s, burst 20 (tech.md)
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
           ThrottlingRateLimit: 10
           ThrottlingBurstLimit: 20
+      # CORS permisivo para el hackathon — AllowOrigin '*' se acotará cuando
+      # haya un dominio de frontend fijo (ver .kiro/steering/tech.md)
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,x-api-key'"
+        AllowOrigin: "'*'"
+      # Binary media types: necesario para que API Gateway envíe multipart/form-data
+      # como base64 al Lambda (isBase64Encoded: true). Sin esto, el PDF binario se
+      # procesa como UTF-8 y se corrompe antes de llegar al handler.
+      BinaryMediaTypes:
+        - "multipart/form-data"
+        - "multipart/*"
 
   # -------------------------------------------------------------------------
   # API Key y Usage Plan — requeridos porque Auth.ApiKeyRequired: true

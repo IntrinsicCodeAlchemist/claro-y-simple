@@ -82,7 +82,12 @@ def http_response(status_code: int, body: dict) -> dict:
     """
     return {
         "statusCode": status_code,
-        "headers": {"Content-Type": "application/json"},
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,x-api-key",
+        },
         "body": json.dumps(body, ensure_ascii=False),
     }
 
