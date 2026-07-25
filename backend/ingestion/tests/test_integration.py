@@ -35,12 +35,13 @@ pytestmark = pytest.mark.skipif(
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from datetime import datetime, timezone  # noqa: E402
-from unittest.mock import patch  # noqa: E402
+from datetime import datetime, timezone
+from unittest.mock import patch
 
-from ingestion.handler import lambda_handler  # noqa: E402
-from ingestion.models import ExtractionResult, ExtractionMetadata  # noqa: E402
-from shared.aws_utils import get_boto3_client  # noqa: E402
+from shared.aws_utils import get_boto3_client
+
+from ingestion.handler import lambda_handler
+from ingestion.models import ExtractionMetadata, ExtractionResult
 
 BOUNDARY = "----IntegrationTestBoundary"
 S3_BUCKET = os.environ.get("S3_BUCKET_NAME", "claro-y-simple-contracts")
@@ -55,8 +56,8 @@ def _build_event(pdf_bytes: bytes, filename: str = "sample_text.pdf") -> dict:
         f"--{BOUNDARY}\r\n"
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
         f"Content-Type: application/pdf\r\n\r\n"
-    ).encode("utf-8")
-    footer = f"\r\n--{BOUNDARY}--\r\n".encode("utf-8")
+    ).encode()
+    footer = f"\r\n--{BOUNDARY}--\r\n".encode()
     body = header + pdf_bytes + footer
     return {
         "body": base64.b64encode(body).decode("ascii"),
