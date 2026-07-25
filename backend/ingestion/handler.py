@@ -223,7 +223,7 @@ def _check_duplicate(content_hash: str) -> str | None:
             doc_id = items[0].get("document_id", {}).get("S")
             if isinstance(doc_id, str) and doc_id:
                 return doc_id
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Si la query al GSI falla (ej: GSI no existe todavía), log y continuar
         # con flujo normal — no bloquear la ingesta por un error de duplicados
         logger.warning("Error al consultar ContentHashIndex — continuando sin dedup")
