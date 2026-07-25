@@ -66,7 +66,14 @@ def _parse_multipart(event: dict) -> tuple[bytes, str]:
     if event.get("isBase64Encoded", False):
         body = base64.b64decode(body)
     else:
-        body = body.encode("latin-1") if isinstance(body, str) else body
+        if isinstance(body, str):
+            try:
+                body = body.encode("latin-1")
+            except UnicodeEncodeError:
+                # Si el body ya fue decodificado como UTF-8 por API Gateway
+                # (sin BinaryMediaTypes configurado), recuperamos los bytes
+                # con surrogateescape como último recurso.
+                body = body.encode("utf-8", errors="surrogateescape")
 
     headers = event.get("headers", {}) or {}
     # Normalizar clave de Content-Type (API Gateway puede enviarlo en minúsculas)
