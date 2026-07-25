@@ -250,12 +250,89 @@ Las tasks dentro de la misma wave no tienen dependencia entre sí según el graf
 
 ---
 
+### Fase 8 — Detección de contratos duplicados
+
+- [x] 22. Agregar campo `content_hash` al modelo `ExtractionResult` y a `build_dynamodb_item`
+
+  **Archivos**: `backend/ingestion/models.py`
+  **Requisitos**: Contrato 1 (actualizado)
+  **Descripción**: Agregar campo `content_hash: str = Field(pattern=r'^[0-9a-f]{64}$')` a `ExtractionResult`. Actualizar `build_dynamodb_item` para incluir `"content_hash": {"S": result.content_hash}` en el ítem serializado. Actualizar `deserialize_dynamodb_item` para incluir `content_hash` en el dict de retorno.
+  **Criterio de completitud**: `ExtractionResult(content_hash="abc")` lanza ValidationError (no tiene 64 chars); un hash SHA-256 válido pasa; `build_dynamodb_item` incluye la clave `content_hash` con tipo `{"S": ...}`.
+
+- [x] 23. Implementar cálculo de `content_hash` en el handler
+
+  **Archivos**: `backend/ingestion/handler.py`
+  **Requisitos**: Design (sección Detección de Duplicados)
+  **Descripción**: Después de obtener el resultado de `extract_text(...)`, calcular `content_hash = hashlib.sha256(extraction.raw_text.encode("utf-8")).hexdigest()`. Pasar el valor al constructor de `ExtractionResult`. Import de `hashlib` al inicio del archivo.
+  **Criterio de completitud**: Para un `raw_text` fijo, el hash producido es determinístico y coincide con `hashlib.sha256(raw_text.encode("utf-8")).hexdigest()` calculado aparte.
+
+- [x] 24. Implementar query al GSI `ContentHashIndex` para detección de duplicados
+
+  **Archivos**: `backend/ingestion/handler.py`
+  **Requisitos**: Design (sección Detección de Duplicados)
+  **Descripción**: Implementar `_check_duplicate(content_hash: str) -> str | None` que hace `query` en `ContractExtractions` usando el índice `ContentHashIndex` con `KeyConditionExpression: content_hash = :hash`. Si retorna al menos un ítem, devolver el `document_id` del primero. Si no hay resultados, retornar `None`. Integrar en `lambda_handler`: después de calcular `content_hash` (post-extracción), llamar `_check_duplicate`. Si retorna un `document_id` existente, retornar inmediatamente HTTP 200 con `{"document_id": <existente>, "duplicate": true}` — sin generar UUID nuevo, sin escribir en DynamoDB. Nota: el upload a S3 ya ocurrió antes de la extracción (prerrequisito de Textract fallback) — no se puede evitar.
+  **Criterio de completitud**: Con un ítem preexistente en LocalStack que tiene el mismo `content_hash`, subir el mismo texto produce HTTP 200 con `duplicate: true` y el `document_id` del ítem original; `put_item` no fue llamado.
+
+- [x] 25. Actualizar `IngestSuccessResponse` con campo `duplicate`
+
+  **Archivos**: `backend/ingestion/models.py`, `frontend/src/types/contract.ts`
+  **Requisitos**: Contrato 3 (actualizado)
+  **Descripción**: Agregar `duplicate: bool = False` a `IngestSuccessResponse` en el modelo Pydantic. Agregar `duplicate: boolean` a la interfaz TypeScript `IngestSuccessResponse`. Actualizar el return del handler: en flujo normal retornar `{"document_id": ..., "duplicate": false}`, en flujo duplicado retornar `{"document_id": ..., "duplicate": true}`.
+  **Criterio de completitud**: La respuesta HTTP 200 de `/ingest` siempre incluye el campo `duplicate` (boolean). TypeScript compila sin errores con el nuevo campo.
+
+- [x] 26. Agregar GSI `ContentHashIndex` a `infra/template.yaml`
+
+  **Archivos**: `infra/template.yaml`
+  **Requisitos**: Design (sección Detección de Duplicados)
+  **Descripción**: En el recurso `ContractExtractionsTable`, agregar `content_hash` a `AttributeDefinitions` y agregar el bloque `GlobalSecondaryIndexes`. El YAML de la tabla debe quedar así:
+
+  ```yaml
+  ContractExtractionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ContractExtractions
+      AttributeDefinitions:
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: content_hash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: document_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ContentHashIndex
+          KeySchema:
+            - AttributeName: content_hash
+              KeyType: HASH
+          Projection:
+            ProjectionType: KEYS_ONLY
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+      Tags:
+        - Key: project
+          Value: hackaton
+  ```
+
+  Sin la entrada de `content_hash` en `AttributeDefinitions`, CloudFormation rechaza el deploy con error de atributo de key no declarado.
+  **Criterio de completitud**: `sam validate` pasa; `sam deploy` crea el GSI sin errores; query al GSI por un `content_hash` existente retorna el `document_id`.
+  **Nota de validación**: Validado con sam deploy real (ContractExtractionsTable con Replacement: False — GSI agregado in-place, sin pérdida de datos) el 2026-07-25, y confirmado funcionalmente de punta a punta: mismo PDF subido dos veces desde el navegador produce duplicate: true con document_id reutilizado y cache hit automático en /analyze.
+
+- [x] 27. Tests de detección de duplicados
+
+  **Archivos**: `backend/ingestion/tests/test_handler.py`, `backend/ingestion/tests/test_integration.py`
+  **Requisitos**: Design (sección Detección de Duplicados)
+  **Descripción**: Tests unitarios: `test_handler_duplicate_detected` — mock DynamoDB query retorna un ítem → HTTP 200, `duplicate: true`, `put_item` (DynamoDB) no llamado. `test_handler_no_duplicate` — mock DynamoDB query retorna vacío → flujo normal, `duplicate: false`. Test de integración contra LocalStack: `test_integration_duplicate_detection` — subir un PDF, luego subir otro PDF con el mismo texto extraído → segunda respuesta tiene `duplicate: true` y el mismo `document_id` que la primera; verificar que `ContractExtractions` tiene solo 1 ítem con ese `content_hash`.
+  **Criterio de completitud**: Tests unitarios pasan con mocks; test de integración pasa contra LocalStack real.
+
+---
+
 ## Notes
 
 - **Precondición de la Fase 5**: los tests de integración (Task 18) requieren que `scripts/setup-localstack.sh` se haya ejecutado con el container de LocalStack activo antes de correrlos. El container arranca vacío en cada reinicio; el script crea el bucket S3, la lifecycle policy, y las tablas DynamoDB con TTL que estos tests dan por existentes.
 - **Textract nunca se emula localmente**: LocalStack Community no incluye Amazon Textract. En unit tests (Fase 2-4) y en tests de integración (Fase 5) por igual, Textract siempre se mockea con `moto` o `unittest.mock`. El único momento en que el camino real de Textract se valida contra el servicio real es al desplegar contra AWS verdadero — conviene priorizar esa verificación apenas haya credenciales disponibles, antes de dar el módulo por cerrado.
 - **Orden de ejecución no es solo sugerido**: el grafo de dependencias de arriba refleja requisitos reales de compilación/import (ej. Task 3 necesita Task 2), no solo una preferencia de secuencia. Saltear tasks fuera de orden puede producir errores de import que no son bugs de la implementación en sí.
-
 
 ---
 
@@ -276,3 +353,4 @@ Estas tasks fueron implementadas después del deploy inicial a AWS para resolver
   **Problema**: El import `from python_multipart import parse_form` fallaba en algunas versiones del paquete que renombraron el módulo interno.
   **Fix**: Confirmar que `python-multipart>=0.0.9` está en requirements.txt y que el import usa `from python_multipart import parse_form` (la API estable).
   **Validación**: Deploy exitoso; parsing multipart funcional en requests reales desde el frontend.
+

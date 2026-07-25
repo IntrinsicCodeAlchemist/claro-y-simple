@@ -20,6 +20,7 @@ inclusion: always
   "raw_text": "string (texto completo extraído del PDF)",
   "extraction_method": "text | ocr",
   "page_count": "number",
+  "content_hash": "string (SHA-256 hex digest del raw_text, 64 caracteres)",
   "metadata": {
     "filename": "string",
     "uploaded_at": "string (ISO8601 timestamp, ej: 2024-01-15T10:30:00Z)"
@@ -34,6 +35,7 @@ inclusion: always
 - `extraction_method` solo acepta exactamente los valores `"text"` (pdfplumber) o `"ocr"` (Textract)
 - `uploaded_at` siempre en UTC, formato ISO 8601 con sufijo `Z`
 - `page_count` es un entero positivo mayor a 0
+- `content_hash` es el SHA-256 hex digest (lowercase, 64 caracteres) calculado sobre el valor exacto de `raw_text` (no sobre el PDF binario). Se usa para detectar contratos duplicados vía GSI `ContentHashIndex`
 
 ### Modelo Pydantic de Referencia (Módulo 1)
 
@@ -53,6 +55,7 @@ class ExtractionResult(BaseModel):
     raw_text: str = Field(min_length=1)
     extraction_method: Literal["text", "ocr"]
     page_count: int = Field(gt=0)
+    content_hash: str = Field(pattern=r'^[0-9a-f]{64}$')
     metadata: ExtractionMetadata
 ```
 
@@ -166,7 +169,8 @@ export interface AnalysisResult {
 
 ```json
 {
-  "document_id": "string (uuid v4)"
+  "document_id": "string (uuid v4)",
+  "duplicate": "boolean (default false — true cuando se reutilizó un document_id existente por coincidencia de contenido)"
 }
 ```
 
@@ -228,6 +232,7 @@ class IngestErrorCode(str, Enum):
 
 class IngestSuccessResponse(BaseModel):
     document_id: str
+    duplicate: bool = False  # true cuando se reutilizó un document_id existente por coincidencia de content_hash
 
 
 class IngestErrorResponse(BaseModel):
@@ -255,6 +260,7 @@ export type IngestErrorCode =
 
 export interface IngestSuccessResponse {
   document_id: string;
+  duplicate: boolean; // true cuando se reutilizó un document_id existente por coincidencia de contenido
 }
 
 export interface IngestErrorResponse {

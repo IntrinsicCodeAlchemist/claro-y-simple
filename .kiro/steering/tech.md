@@ -23,6 +23,7 @@ inclusion: always
 ### Extracción de Texto desde PDFs
 - **Principal**: `pdfplumber` — para PDFs con texto embebido (la mayoría de contratos digitales)
 - **Fallback**: Amazon Textract — para PDFs escaneados o con texto como imagen
+- **Detección de duplicados**: SHA-256 sobre el `raw_text` extraído (no sobre el binario del PDF). El hash se almacena como `content_hash` en `ContractExtractions` con GSI `ContentHashIndex` para lookup O(1).
 
 ### Infraestructura como Código (IaC)
 - **Herramienta**: AWS SAM (Serverless Application Model)

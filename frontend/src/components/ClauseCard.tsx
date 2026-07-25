@@ -68,7 +68,7 @@ export function ClauseCard({ clause }: ClauseCardProps) {
 
       {/* Texto citado del contrato — Req 7.2 */}
       <blockquote
-        className="border-l-2 border-gray-300 pl-3 mb-3 italic text-sm text-gray-600 leading-relaxed"
+        className="border-l-2 border-gray-300 pl-3 mb-3 italic text-sm text-gray-600 leading-relaxed text-justify"
         aria-label="Texto original del contrato"
       >
         "{clause.clause_text}"

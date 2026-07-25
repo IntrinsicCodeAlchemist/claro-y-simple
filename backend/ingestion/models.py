@@ -33,6 +33,7 @@ class ExtractionResult(BaseModel):
     raw_text: str = Field(min_length=1)
     extraction_method: Literal["text", "ocr"]
     page_count: int = Field(gt=0)
+    content_hash: str = Field(pattern=r'^[0-9a-f]{64}$')
     metadata: ExtractionMetadata
     ttl: int  # Unix timestamp: now() + 86400 — campo extra para DynamoDB TTL
 
@@ -67,6 +68,7 @@ class IngestErrorCode(str, Enum):
 class IngestSuccessResponse(BaseModel):
     """Respuesta exitosa de POST /ingest (HTTP 200)."""
     document_id: str
+    duplicate: bool = False  # true cuando se reutilizó un document_id existente por coincidencia de content_hash
 
 
 class IngestErrorResponse(BaseModel):
@@ -105,6 +107,7 @@ def build_dynamodb_item(result: ExtractionResult) -> dict:
         "raw_text":           {"S": result.raw_text},
         "extraction_method":  {"S": result.extraction_method},
         "page_count":         {"N": str(result.page_count)},
+        "content_hash":       {"S": result.content_hash},
         "metadata": {
             "M": {
                 "filename":    {"S": result.metadata.filename},

@@ -1085,3 +1085,55 @@ Parameters:
 ```
 
 El parámetro `EnvironmentName` se pasa como variable de entorno `ENVIRONMENT` al Lambda, permitiendo que el handler detecte el modo de operación sin cambios de código.
+
+
+---
+
+## Detección de Contratos Duplicados
+
+### Motivación
+
+Si un usuario sube el mismo contrato dos veces (o dos escaneos distintos del mismo documento que producen texto idéntico), no tiene sentido crear un ítem nuevo en DynamoDB ni re-invocar Bedrock para un análisis que ya existe. La detección de duplicados por hash de contenido evita ese costo.
+
+### Mecanismo
+
+1. **Cálculo del hash**: después de extraer `raw_text` (ya sea por pdfplumber o Textract), calcular `content_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()`. El hash se calcula sobre el texto extraído (no sobre el binario del PDF) para que dos escaneos diferentes del mismo contrato produzcan el mismo hash.
+
+2. **Consulta del GSI**: antes de persistir en DynamoDB, consultar el Global Secondary Index `ContentHashIndex` en `ContractExtractions` con `content_hash` como clave. El GSI tiene `ProjectionType: KEYS_ONLY` — retorna solo `document_id`.
+
+3. **Si hay match** (el hash ya existe en la tabla):
+   - NO generar un `document_id` nuevo
+   - NO escribir un ítem nuevo en DynamoDB
+   - Retornar HTTP 200 con `{ "document_id": "<id_existente>", "duplicate": true }`
+   - El frontend luego llama a `POST /analyze` con ese `document_id`, y como el análisis ya existe en `ContractAnalyses`, recibe `cached: true` automáticamente (ahorrando la invocación a Bedrock)
+
+4. **Si NO hay match** (contenido nuevo):
+   - Flujo normal (generar UUID, persistir extracción con `content_hash` incluido en el ítem)
+   - Retornar HTTP 200 con `{ "document_id": "<id_nuevo>", "duplicate": false }`
+
+### Posición en el flujo del handler
+
+```
+_parse_multipart → _validate_pdf → generar document_id → _upload_to_s3 → extract_text
+    → calcular content_hash → query GSI ContentHashIndex
+        → si match: retornar {document_id existente, duplicate: true}
+        → si no match: _persist_result (con content_hash en el ítem) → retornar {document_id nuevo, duplicate: false}
+```
+
+**Nota sobre el upload a S3**: el upload ocurre ANTES de la extracción y ANTES de la detección de duplicados. Esto es un prerrequisito obligatorio: si pdfplumber falla, el fallback a Textract necesita el objeto ya en S3 (`DetectDocumentText` con `S3Object`). Por lo tanto, **en caso de duplicado, el PDF ya fue subido a S3** — lo que se ahorra es la escritura en DynamoDB y, downstream, la invocación a Bedrock (vía cache hit de `/analyze`). El PDF duplicado en S3 expira automáticamente a las 24h por la lifecycle policy existente.
+
+### Ahorro real
+
+| Recurso | ¿Se ahorra en caso de duplicado? |
+|---------|----------------------------------|
+| Upload a S3 | **No** (prerrequisito de Textract fallback) |
+| Escritura en DynamoDB (`put_item`) | **Sí** |
+| Invocación a Bedrock (`/analyze`) | **Sí** (cache hit automático con `document_id` existente) |
+| Costo de Bedrock por tokens | **Sí** (el ahorro más significativo del presupuesto) |
+
+### Infraestructura
+
+- **GSI `ContentHashIndex`**: definido en `infra/template.yaml` sobre la tabla `ContractExtractions`
+  - Partition key: `content_hash` (String)
+  - Projection: `KEYS_ONLY` (solo retorna `document_id`)
+  - Billing: hereda el modo on-demand de la tabla base

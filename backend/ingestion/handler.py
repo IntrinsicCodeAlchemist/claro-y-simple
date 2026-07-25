@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import os
@@ -200,6 +201,35 @@ def _persist_result(result: ExtractionResult) -> None:
         ) from exc
 
 
+def _check_duplicate(content_hash: str) -> str | None:
+    """Consulta el GSI ContentHashIndex para detectar duplicados.
+
+    Args:
+        content_hash: SHA-256 hex digest del raw_text extraído.
+
+    Returns:
+        El document_id del ítem existente si hay match, None si no.
+    """
+    try:
+        response = _dynamodb_client.query(
+            TableName=_DYNAMODB_TABLE,
+            IndexName="ContentHashIndex",
+            KeyConditionExpression="content_hash = :hash",
+            ExpressionAttributeValues={":hash": {"S": content_hash}},
+            Limit=1,
+        )
+        items = response.get("Items", [])
+        if items and isinstance(items, list) and len(items) > 0:
+            doc_id = items[0].get("document_id", {}).get("S")
+            if isinstance(doc_id, str) and doc_id:
+                return doc_id
+    except Exception:  # noqa: BLE001
+        # Si la query al GSI falla (ej: GSI no existe todavía), log y continuar
+        # con flujo normal — no bloquear la ingesta por un error de duplicados
+        logger.warning("Error al consultar ContentHashIndex — continuando sin dedup")
+    return None
+
+
 def _http_response(status_code: int, body: dict) -> dict:
     """Formatea una respuesta HTTP compatible con API Gateway proxy integration
     con headers CORS necesarios para que el navegador acepte la respuesta."""
@@ -262,6 +292,19 @@ def lambda_handler(event: dict, context: object) -> dict:
             s3_bucket=_S3_BUCKET,
         )
 
+        # 6b. Calcular content_hash del texto extraído
+        content_hash = hashlib.sha256(extraction.raw_text.encode("utf-8")).hexdigest()
+
+        # 6c. Detectar duplicado vía GSI ContentHashIndex
+        existing_id = _check_duplicate(content_hash)
+        if existing_id:
+            logger.info(
+                "Duplicado detectado",
+                existing_document_id=existing_id,
+                content_hash=content_hash,
+            )
+            return _http_response(200, {"document_id": existing_id, "duplicate": True})
+
         # 7. Construir ExtractionResult completo — la validación Pydantic ocurre aquí
         logger.debug("Construyendo ExtractionResult", document_id=document_id)
         try:
@@ -270,6 +313,7 @@ def lambda_handler(event: dict, context: object) -> dict:
                 raw_text=extraction.raw_text,
                 extraction_method=extraction.extraction_method,
                 page_count=extraction.page_count,
+                content_hash=content_hash,
                 metadata=ExtractionMetadata(
                     filename=filename[:255],
                     uploaded_at=uploaded_at,
@@ -298,7 +342,7 @@ def lambda_handler(event: dict, context: object) -> dict:
             file_name=filename,
         )
 
-        return _http_response(200, {"document_id": document_id})
+        return _http_response(200, {"document_id": document_id, "duplicate": False})
 
     except ValidationError as exc:
         logger.warning(
