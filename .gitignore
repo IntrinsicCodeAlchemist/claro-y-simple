@@ -26,6 +26,9 @@ dist/
 *.swp
 *.swo
 
+# Command output files (accidental redirections)
+build_output.txt
+
 # Archivos de prueba descartables (no commitear)
 scan_contrato_prueba.pdf
 
