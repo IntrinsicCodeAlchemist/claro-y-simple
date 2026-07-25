@@ -1,22 +1,28 @@
 """Script descartable para validar el camino real de Textract contra AWS.
 No forma parte de tasks.md. Es solo para prueba manual.
 
-Uso (correr desde la carpeta backend/, no desde backend/ingestion/):
-    cd backend
-    python -m ingestion.adhoc_textract_test /ruta/al/scan_contrato_prueba.pdf
-
-Antes de correrlo, cargá las variables del .env real en la shell:
+Uso (desde la raíz del repo):
     cd backend/ingestion
     set -a; source .env; set +a
-    cd ..
-    python -m ingestion.adhoc_textract_test /ruta/al/pdf
+    cd ../..
+    python scripts/test_textract_real.py <ruta-al-pdf>
 """
 import base64
 import json
 import sys
 from pathlib import Path
 
-from backend.ingestion.handler import lambda_handler
+# El script vive en scripts/, y los módulos del proyecto asumen:
+#   - backend/ en sys.path  (para from shared.exceptions import ...)
+#   - raíz del repo en sys.path  (para from backend.ingestion import ...)
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_BACKEND_DIR = _REPO_ROOT / "backend"
+for _p in (_REPO_ROOT, _BACKEND_DIR):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+
+from backend.ingestion.handler import lambda_handler  # noqa: E402
+
 
 def build_multipart_event(pdf_bytes: bytes, filename: str) -> dict:
     boundary = "----RealTextractTest"
@@ -40,7 +46,7 @@ class FakeContext:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Uso: python -m ingestion.adhoc_textract_test <ruta-al-pdf>")
+        print("Uso: python scripts/test_textract_real.py <ruta-al-pdf>")
         sys.exit(1)
 
     pdf_path = Path(sys.argv[1])

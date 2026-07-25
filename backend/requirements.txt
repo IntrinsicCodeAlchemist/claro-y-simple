@@ -1,0 +1,7 @@
+# Claro y Simple — Dependencias de producción para el paquete Lambda
+# (CodeUri de IngestionFunction y AnalysisFunction en infra/template.yaml)
+pydantic>=2.0
+aws-lambda-powertools
+boto3
+pdfplumber
+python-multipart

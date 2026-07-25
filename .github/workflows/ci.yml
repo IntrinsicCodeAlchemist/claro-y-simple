@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_REGION: us-east-1
+
 jobs:
   test-ingestion:
     name: Test — Ingestion module
@@ -26,3 +30,18 @@ jobs:
         run: ruff check .
       - name: Tests unitarios (sin integración)
         run: pytest tests/ -v -m "not integration"
+
+  test-analysis:
+    name: Test — Analysis module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install -r backend/analysis/requirements.txt ruff
+      - name: Lint
+        run: ruff check backend/analysis/
+      - name: Tests
+        run: pytest backend/analysis/tests/ -v -m "not integration"
