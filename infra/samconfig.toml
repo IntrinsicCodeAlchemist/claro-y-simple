@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "claro-y-simple-dev"
+resolve_s3 = true
+s3_prefix = "claro-y-simple-dev"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "EnvironmentName=\"development\" BedrockModelId=\"us.anthropic.claude-haiku-4-5-20251001-v1:0\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"

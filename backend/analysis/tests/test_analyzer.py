@@ -10,22 +10,21 @@ from unittest.mock import MagicMock, patch
 from botocore.exceptions import ClientError, ReadTimeoutError
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from shared.exceptions import AnalysisError
 
-from backend.analysis.analyzer import calculate_risk_score, validate_document_id
-from backend.analysis.models import (
+from analysis.analyzer import calculate_risk_score, validate_document_id
+from analysis.models import (
     AnalysisResult,
     Clause,
     build_analysis_dynamodb_item,
     deserialize_analysis_item,
 )
-from backend.analysis.tests.conftest import (
+from analysis.tests.conftest import (
     make_bedrock_response,
     make_cached_analysis_item,
     make_event,
     make_extraction_item,
 )
-from backend.shared.exceptions import AnalysisError
-
 
 VALID_UUID = "550e8400-e29b-41d4-a716-446655440000"
 SAMPLE_RAW_TEXT = "Este es un contrato de alquiler entre las partes..."
@@ -36,8 +35,8 @@ SAMPLE_RAW_TEXT = "Este es un contrato de alquiler entre las partes..."
 # ============================================================================
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_successful_analysis_flow(mock_dynamodb, mock_bedrock, lambda_context):
     """Camino B: análisis nuevo exitoso con cláusulas."""
     # Mock DynamoDB: no cache, sí extracción
@@ -55,7 +54,7 @@ def test_successful_analysis_flow(mock_dynamodb, mock_bedrock, lambda_context):
     # Mock Bedrock: respuesta válida con 1 cláusula
     mock_bedrock.invoke_model.return_value = make_bedrock_response()
 
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     response = lambda_handler(make_event(VALID_UUID), lambda_context)
 
@@ -74,8 +73,8 @@ def test_successful_analysis_flow(mock_dynamodb, mock_bedrock, lambda_context):
     mock_dynamodb.put_item.assert_called_once()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_zero_clauses(mock_dynamodb, mock_bedrock, lambda_context):
     """Camino B: Bedrock retorna cero cláusulas -> risk_score=0, clauses=[]."""
     def get_item_side_effect(**kwargs):
@@ -92,7 +91,7 @@ def test_zero_clauses(mock_dynamodb, mock_bedrock, lambda_context):
     # Bedrock retorna sin cláusulas
     mock_bedrock.invoke_model.return_value = make_bedrock_response(clauses=[])
 
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     response = lambda_handler(make_event(VALID_UUID), lambda_context)
 
@@ -103,14 +102,14 @@ def test_zero_clauses(mock_dynamodb, mock_bedrock, lambda_context):
     assert body["clauses"] == []
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_cache_hit_returns_cached_true(mock_dynamodb, mock_bedrock, lambda_context):
     """Camino A: cache hit retorna resultado previo con cached=true."""
     # Mock DynamoDB: cache hit
     mock_dynamodb.get_item.return_value = make_cached_analysis_item(VALID_UUID)
 
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     response = lambda_handler(make_event(VALID_UUID), lambda_context)
 
@@ -124,13 +123,13 @@ def test_cache_hit_returns_cached_true(mock_dynamodb, mock_bedrock, lambda_conte
     assert body["overall_recommendation"] != ""
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_cache_hit_no_bedrock_call(mock_dynamodb, mock_bedrock, lambda_context):
     """Camino A: cache hit NO invoca Bedrock."""
     mock_dynamodb.get_item.return_value = make_cached_analysis_item(VALID_UUID)
 
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     lambda_handler(make_event(VALID_UUID), lambda_context)
 
@@ -144,11 +143,11 @@ def test_cache_hit_no_bedrock_call(mock_dynamodb, mock_bedrock, lambda_context):
 # ============================================================================
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_missing_document_id(mock_dynamodb, mock_bedrock, lambda_context):
     """Body sin campo document_id -> HTTP 400, MISSING_DOCUMENT_ID, sin document_id en respuesta."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     event = {"body": "{}"}
     response = lambda_handler(event, lambda_context)
@@ -163,11 +162,11 @@ def test_missing_document_id(mock_dynamodb, mock_bedrock, lambda_context):
     mock_dynamodb.get_item.assert_not_called()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_empty_document_id(mock_dynamodb, mock_bedrock, lambda_context):
     """Body con document_id vacío -> HTTP 400, MISSING_DOCUMENT_ID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     event = {"body": json.dumps({"document_id": ""})}
     response = lambda_handler(event, lambda_context)
@@ -181,11 +180,11 @@ def test_empty_document_id(mock_dynamodb, mock_bedrock, lambda_context):
     mock_dynamodb.get_item.assert_not_called()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_invalid_document_id_format(mock_dynamodb, mock_bedrock, lambda_context):
     """UUID malformado -> HTTP 400, INVALID_DOCUMENT_ID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     event = {"body": json.dumps({"document_id": "no-es-uuid-valido"})}
     response = lambda_handler(event, lambda_context)
@@ -198,11 +197,11 @@ def test_invalid_document_id_format(mock_dynamodb, mock_bedrock, lambda_context)
     mock_dynamodb.get_item.assert_not_called()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_invalid_document_id_v1(mock_dynamodb, mock_bedrock, lambda_context):
     """UUID v1 (no v4) -> HTTP 400, INVALID_DOCUMENT_ID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     # UUID v1: el tercer grupo empieza con 1, no con 4
     uuid_v1 = "550e8400-e29b-11d4-a716-446655440000"
@@ -226,11 +225,11 @@ def test_invalid_document_id_v1(mock_dynamodb, mock_bedrock, lambda_context):
 # ============================================================================
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_document_not_found(mock_dynamodb, mock_bedrock, lambda_context):
     """document_id inexistente en ambas tablas -> HTTP 404, DOCUMENT_NOT_FOUND, document_id presente."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     # Ambas tablas retornan vacío
     mock_dynamodb.get_item.return_value = {}
@@ -243,11 +242,11 @@ def test_document_not_found(mock_dynamodb, mock_bedrock, lambda_context):
     assert body["document_id"] == VALID_UUID
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_context_too_long(mock_dynamodb, mock_bedrock, lambda_context, monkeypatch):
     """raw_text excede MAX_CONTEXT_CHARS -> HTTP 422, CONTEXT_TOO_LONG, Bedrock no invocado."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     # Setear un límite bajo para forzar el error
     monkeypatch.setenv("MAX_CONTEXT_CHARS", "50")
@@ -282,11 +281,11 @@ def test_context_too_long(mock_dynamodb, mock_bedrock, lambda_context, monkeypat
 # ============================================================================
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_bedrock_timeout(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock no responde a tiempo -> HTTP 503, BEDROCK_TIMEOUT, put_item no llamado."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -310,11 +309,11 @@ def test_bedrock_timeout(mock_dynamodb, mock_bedrock, lambda_context):
     mock_dynamodb.put_item.assert_not_called()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_bedrock_throttled(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock rechaza por throttling -> HTTP 503, BEDROCK_THROTTLED, put_item no llamado."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -339,11 +338,11 @@ def test_bedrock_throttled(mock_dynamodb, mock_bedrock, lambda_context):
     mock_dynamodb.put_item.assert_not_called()
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_bedrock_service_error(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock error genérico -> HTTP 502, BEDROCK_SERVICE_ERROR, put_item no llamado."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -390,11 +389,11 @@ def _make_bedrock_raw_response(text_content: str) -> dict:
     return {"body": body_mock}
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_model_response_invalid_json(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock retorna string no-JSON -> HTTP 422, MODEL_RESPONSE_INVALID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -414,11 +413,11 @@ def test_model_response_invalid_json(mock_dynamodb, mock_bedrock, lambda_context
     assert body["error_code"] == "MODEL_RESPONSE_INVALID"
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_model_response_markdown_fence_parsed(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock envuelve JSON en ```json...``` -> parse_model_response lo extrae y devuelve HTTP 200."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -457,11 +456,11 @@ def test_model_response_markdown_fence_parsed(mock_dynamodb, mock_bedrock, lambd
     assert len(body["clauses"]) == 1
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_model_response_missing_fields(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock retorna JSON sin campos requeridos -> HTTP 422, MODEL_RESPONSE_INVALID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -483,11 +482,11 @@ def test_model_response_missing_fields(mock_dynamodb, mock_bedrock, lambda_conte
     assert body["error_code"] == "MODEL_RESPONSE_INVALID"
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_model_response_invalid_enum(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock retorna JSON con risk_level inválido -> HTTP 422, MODEL_RESPONSE_INVALID."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -519,11 +518,11 @@ def test_model_response_invalid_enum(mock_dynamodb, mock_bedrock, lambda_context
     assert body["error_code"] == "MODEL_RESPONSE_INVALID"
 
 
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_persistence_failure(mock_dynamodb, mock_bedrock, lambda_context):
     """put_item falla -> HTTP 502, PERSISTENCE_FAILURE, document_id presente."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     def get_item_side_effect(**kwargs):
         table = kwargs["TableName"]
@@ -556,12 +555,12 @@ def test_persistence_failure(mock_dynamodb, mock_bedrock, lambda_context):
 # ============================================================================
 
 
-@patch("backend.analysis.handler.logger")
-@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
-@patch("backend.analysis.analyzer._dynamodb_client")
+@patch("analysis.handler.logger")
+@patch("analysis.analyzer._bedrock_client", autospec=True)
+@patch("analysis.analyzer._dynamodb_client")
 def test_internal_error_no_leak(mock_dynamodb, mock_bedrock, mock_logger, lambda_context):
     """Excepción inesperada -> HTTP 500, INTERNAL_ERROR, sin detalles internos en respuesta."""
-    from backend.analysis.handler import lambda_handler
+    from analysis.handler import lambda_handler
 
     # Forzar una excepción inesperada en get_cached_analysis
     mock_dynamodb.get_item.side_effect = RuntimeError("detalle interno secreto")

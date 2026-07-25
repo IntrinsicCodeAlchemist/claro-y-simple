@@ -35,3 +35,6 @@ Thumbs.db
 
 # Kiro session snapshots (no commitear)
 .kiro/sessions/
+
+# SAM build output (se regenera con sam build)
+infra/.aws-sam/

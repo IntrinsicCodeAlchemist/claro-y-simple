@@ -14,9 +14,8 @@ from pathlib import Path
 from botocore.config import Config
 from botocore.exceptions import ClientError, ReadTimeoutError
 from pydantic import ValidationError
-
-from backend.shared.aws_utils import get_boto3_client
-from backend.shared.exceptions import (
+from shared.aws_utils import get_boto3_client
+from shared.exceptions import (
     AnalysisError,
     AnalysisErrorCode,
     BedrockError,
@@ -24,14 +23,14 @@ from backend.shared.exceptions import (
     StorageError,
     StorageErrorCode,
 )
-from backend.analysis.models import (
+
+from analysis.models import (
     AnalysisResult,
     Clause,
     ModelResponse,
     build_analysis_dynamodb_item,
     deserialize_analysis_item,
 )
-
 
 # ============================================================================
 # Configuración y clientes (module-level)

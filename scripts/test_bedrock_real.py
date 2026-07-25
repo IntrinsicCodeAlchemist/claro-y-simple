@@ -38,18 +38,23 @@ import sys
 import uuid
 from pathlib import Path
 
-# La raíz del repo debe estar en sys.path para que los imports
-# absolutos de backend.* resuelvan sin backend/__init__.py.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# El script vive en scripts/, y los módulos del proyecto asumen:
+#   - backend/ en sys.path  (para from shared.exceptions import ...)
+#   - raíz del repo en sys.path  (para from backend.analysis import ...)
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_BACKEND_DIR = _REPO_ROOT / "backend"
+for _p in (_REPO_ROOT, _BACKEND_DIR):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-from backend.analysis.analyzer import (  # noqa: E402
+from analysis.analyzer import (  # noqa: E402
     build_prompt,
     calculate_risk_score,
     invoke_bedrock,
     validate_context_length,
 )
-from backend.analysis.handler import lambda_handler  # noqa: E402
-from backend.analysis.models import AnalysisResult, Clause  # noqa: E402
+from analysis.handler import lambda_handler  # noqa: E402
+from analysis.models import AnalysisResult, Clause  # noqa: E402
 
 
 class FakeContext:

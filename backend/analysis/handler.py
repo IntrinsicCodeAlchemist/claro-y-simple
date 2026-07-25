@@ -10,8 +10,7 @@ import json
 import os
 
 from aws_lambda_powertools import Logger
-
-from backend.shared.exceptions import (
+from shared.exceptions import (
     AnalysisError,
     AnalysisErrorCode,
     BedrockError,
@@ -19,14 +18,14 @@ from backend.shared.exceptions import (
     ConfigurationError,
     StorageError,
 )
-from backend.analysis.analyzer import (
+
+from analysis.analyzer import (
     analyze_contract,
     get_cached_analysis,
     get_extraction,
     persist_analysis,
     validate_document_id,
 )
-
 
 # ============================================================================
 # Inicialización module-scope

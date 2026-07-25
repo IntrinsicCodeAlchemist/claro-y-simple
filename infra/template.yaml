@@ -41,6 +41,11 @@ Mappings:
     production:
       Suffix: production
 
+Globals:
+  Function:
+    Tags:
+      project: hackaton
+
 # ---------------------------------------------------------------------------
 # Recursos
 # ---------------------------------------------------------------------------
@@ -69,6 +74,44 @@ Resources:
           ThrottlingBurstLimit: 20
 
   # -------------------------------------------------------------------------
+  # API Key y Usage Plan — requeridos porque Auth.ApiKeyRequired: true
+  # -------------------------------------------------------------------------
+
+  ClaroYSimpleApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - ClaroYSimpleApiStage
+    Properties:
+      Name: claro-y-simple-api-key
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref ClaroYSimpleApi
+          StageName: !Ref EnvironmentName
+
+  ClaroYSimpleUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ClaroYSimpleApiStage
+    Properties:
+      UsagePlanName: claro-y-simple-usage-plan
+      ApiStages:
+        - ApiId: !Ref ClaroYSimpleApi
+          Stage: !Ref EnvironmentName
+      Throttle:
+        RateLimit: 10
+        BurstLimit: 20
+      Quota:
+        Limit: 500
+        Period: DAY
+
+  ClaroYSimpleUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ClaroYSimpleApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ClaroYSimpleUsagePlan
+
+  # -------------------------------------------------------------------------
   # Bucket S3 — almacenamiento de PDFs subidos
   # -------------------------------------------------------------------------
 
@@ -82,13 +125,8 @@ Resources:
         Rules:
           - Id: expire-contracts-24h
             Status: Enabled
-            Filter:
-              Prefix: contracts/
-            Expiration:
-              Days: 1
-      # Eliminar objetos completamente después de 24h
-      VersioningConfiguration:
-        Status: Disabled
+            Prefix: contracts/
+            ExpirationInDays: 1
       Tags:
         - Key: project
           Value: hackaton
@@ -122,9 +160,9 @@ Resources:
   IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handler.lambda_handler
+      Handler: ingestion.handler.lambda_handler
       Runtime: python3.12
-      CodeUri: ../backend/ingestion/
+      CodeUri: ../backend/
       Timeout: 30
       MemorySize: 512
       Tags:
@@ -184,9 +222,9 @@ Resources:
   AnalysisFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handler.lambda_handler
+      Handler: analysis.handler.lambda_handler
       Runtime: python3.12
-      CodeUri: ../backend/analysis/
+      CodeUri: ../backend/
       Timeout: 60
       MemorySize: 256
       Tags:

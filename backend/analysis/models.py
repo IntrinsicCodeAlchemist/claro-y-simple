@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import time
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 # ============================================================================
 # Modelos del Contrato 2 — Resultado de Análisis
@@ -100,7 +99,7 @@ class AnalyzeErrorResponse(BaseModel):
     """Respuesta de error de POST /analyze."""
     error_code: AnalyzeErrorCode
     message: str
-    document_id: Optional[str] = None
+    document_id: str | None = None
 
 
 # ============================================================================
