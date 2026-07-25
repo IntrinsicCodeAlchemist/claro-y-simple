@@ -255,3 +255,24 @@ Las tasks dentro de la misma wave no tienen dependencia entre sí según el graf
 - **Precondición de la Fase 5**: los tests de integración (Task 18) requieren que `scripts/setup-localstack.sh` se haya ejecutado con el container de LocalStack activo antes de correrlos. El container arranca vacío en cada reinicio; el script crea el bucket S3, la lifecycle policy, y las tablas DynamoDB con TTL que estos tests dan por existentes.
 - **Textract nunca se emula localmente**: LocalStack Community no incluye Amazon Textract. En unit tests (Fase 2-4) y en tests de integración (Fase 5) por igual, Textract siempre se mockea con `moto` o `unittest.mock`. El único momento en que el camino real de Textract se valida contra el servicio real es al desplegar contra AWS verdadero — conviene priorizar esa verificación apenas haya credenciales disponibles, antes de dar el módulo por cerrado.
 - **Orden de ejecución no es solo sugerido**: el grafo de dependencias de arriba refleja requisitos reales de compilación/import (ej. Task 3 necesita Task 2), no solo una preferencia de secuencia. Saltear tasks fuera de orden puede producir errores de import que no son bugs de la implementación en sí.
+
+
+---
+
+## Fixes post-deploy validados contra AWS real
+
+Estas tasks fueron implementadas después del deploy inicial a AWS para resolver problemas detectados en runtime.
+
+- [x] FIX-I1. `get_boto3_client` acepta parámetro `config` opcional
+
+  **Archivos**: `backend/shared/aws_utils.py`
+  **Problema**: El Módulo 2 necesitaba pasar `Config(read_timeout=...)` al cliente Bedrock, pero la función compartida solo aceptaba `service_name`.
+  **Fix**: Agregar `config: Optional[Config] = None` como segundo parámetro. Si se pasa, se incluye en los kwargs de `boto3.client(...)`. No afecta al Módulo 1 (que no pasa config).
+  **Validación**: Módulo 1 sigue funcionando sin cambios; Módulo 2 puede configurar timeouts.
+
+- [x] FIX-I2. Import path correcto para `python-multipart` en handler
+
+  **Archivos**: `backend/ingestion/handler.py`
+  **Problema**: El import `from python_multipart import parse_form` fallaba en algunas versiones del paquete que renombraron el módulo interno.
+  **Fix**: Confirmar que `python-multipart>=0.0.9` está en requirements.txt y que el import usa `from python_multipart import parse_form` (la API estable).
+  **Validación**: Deploy exitoso; parsing multipart funcional en requests reales desde el frontend.

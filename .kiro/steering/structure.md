@@ -20,6 +20,7 @@ claro-y-simple/
 │   │   └── frontend/               # Spec del Módulo 3: UI
 │   └── hooks/
 ├── backend/
+│   ├── requirements.txt            # Dependencias consolidadas del paquete Lambda (usado por SAM con CodeUri: ../backend/)
 │   ├── ingestion/                  # Módulo 1: Ingesta y extracción de texto
 │   │   ├── handler.py              # Lambda handler — punto de entrada AWS Lambda
 │   │   ├── extractor.py            # Lógica de extracción: pdfplumber + Textract fallback
@@ -29,7 +30,7 @@ claro-y-simple/
 │   │   │   ├── test_handler.py
 │   │   │   ├── test_integration.py
 │   │   │   └── fixtures/           # PDFs de prueba (texto embebido, escaneados, edge cases)
-│   │   └── requirements.txt
+│   │   └── requirements.txt        # Dependencias de desarrollo/test del módulo
 │   ├── analysis/                   # Módulo 2: Motor de análisis con IA
 │   │   ├── handler.py              # Lambda handler — punto de entrada AWS Lambda
 │   │   ├── analyzer.py             # Lógica de análisis: llama a Bedrock, procesa respuesta
@@ -38,7 +39,7 @@ claro-y-simple/
 │   │   │   └── clause_analysis.txt # Prompt template para el análisis de cláusulas
 │   │   ├── tests/
 │   │   │   └── test_analyzer.py
-│   │   └── requirements.txt
+│   │   └── requirements.txt        # Dependencias de desarrollo/test del módulo
 │   └── shared/                     # Código compartido entre módulos backend
 │       ├── aws_utils.py            # Helper get_boto3_client (respeta AWS_ENDPOINT_URL)
 │       └── exceptions.py           # Excepciones personalizadas del dominio
@@ -61,12 +62,14 @@ claro-y-simple/
 │   └── vite.config.ts
 ├── infra/
 │   ├── template.yaml               # AWS SAM template — define todos los recursos AWS
-│   ├── samconfig.toml              # Configuración de deployment (stack name, región, S3 bucket)
-│   └── layers/
-│       └── python-deps/            # Lambda layer con dependencias Python comunes
-├── docs/
-│   ├── architecture.md             # Diagrama y descripción de la arquitectura
-│   └── demo-guide.md               # Guía para la demo del hackathon
+│   └── samconfig.toml              # Configuración de deployment (stack name, región, S3 bucket)
+├── scripts/
+│   ├── setup-localstack.sh         # Bootstrap de recursos LocalStack (S3, DynamoDB) — ejecutar antes de tests de integración
+│   ├── setup_localstack.py         # Variante Python del bootstrap de LocalStack
+│   ├── gen_sample_pdf.py           # Genera PDFs de prueba para fixtures de tests
+│   ├── invoke_deployed_ingestion.py # Script ad-hoc para probar el endpoint de ingesta deployado
+│   ├── test_textract_real.py        # Prueba manual de Textract contra AWS real
+│   └── test_bedrock_real.py         # Prueba manual de Bedrock contra AWS real
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                  # Ejecuta tests en cada push a cualquier rama
@@ -89,6 +92,7 @@ Responsabilidad: recibir el PDF del usuario y extraer su texto.
 - Genera un `document_id` único (UUID v4) para el documento
 - Persiste el resultado en DynamoDB tabla `ContractExtractions` siguiendo el **Contrato 1**
 - **No llama al Módulo 2 directamente** — el análisis se dispara por separado o en el mismo flujo vía API Gateway
+- **`CodeUri: ../backend/`** — ambas funciones Lambda apuntan al directorio `backend/` completo para que el paquete incluya `shared/`. Los imports usan rutas sin prefijo `backend.` (ej: `from ingestion.models import ...`, `from shared.aws_utils import ...`)
 
 ### Módulo 2: Analysis (`backend/analysis/`)
 
@@ -99,6 +103,7 @@ Responsabilidad: analizar el texto extraído e identificar cláusulas riesgosas.
 - Parsea la respuesta del modelo y calcula el `risk_score`
 - Persiste el resultado en DynamoDB tabla `ContractAnalyses` siguiendo el **Contrato 2**
 - Expone un endpoint via API Gateway para que el frontend consulte el estado/resultado
+- **`CodeUri: ../backend/`** — mismo paquete compartido que Ingestion; imports usan `from analysis.xxx import ...` (sin prefijo `backend.`)
 
 ### Módulo 3: Frontend (`frontend/`)
 
