@@ -8,18 +8,18 @@ import uuid
 from datetime import datetime, timezone
 
 from aws_lambda_powertools import Logger
-from pydantic import ValidationError as PydanticValidationError
 from python_multipart import parse_form
+from pydantic import ValidationError as PydanticValidationError
+
 from shared.aws_utils import get_boto3_client
 from shared.exceptions import (
     ConfigurationError,
     ExtractionError,
     StorageError,
-    StorageErrorCode,
     ValidationError,
+    StorageErrorCode,
     ValidationErrorCode,
 )
-
 from ingestion.extractor import extract_text
 from ingestion.models import ExtractionMetadata, ExtractionResult, build_dynamodb_item
 
