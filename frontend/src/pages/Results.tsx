@@ -1,4 +1,4 @@
-import { useLocation, Navigate } from "react-router-dom";
+import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import type { AnalyzeSuccessResponse } from "@/types/contract";
 import { sortClausesByRisk } from "@/utils/riskDisplay";
 import { RiskScore } from "@/components/RiskScore";
@@ -23,6 +23,7 @@ interface ResultsLocationState {
  */
 export function Results() {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = location.state as ResultsLocationState | null;
 
   // Redirigir a / si no hay datos (navegación directa a /results sin análisis)
@@ -91,7 +92,7 @@ export function Results() {
           >
             Resumen
           </h2>
-          <p className="text-base text-gray-700 leading-relaxed">
+          <p className="text-base text-gray-700 leading-relaxed text-justify">
             {summary_plain}
           </p>
         </section>
@@ -165,6 +166,23 @@ export function Results() {
             {overall_recommendation}
           </p>
         </section>
+
+        {/* Botón para volver a analizar otro contrato */}
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="
+              px-5 py-2 rounded-lg
+              bg-blue-600 text-white text-sm font-medium
+              hover:bg-blue-700 active:bg-blue-800
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              transition-colors duration-150
+            "
+          >
+            Analizar otro contrato
+          </button>
+        </div>
 
       </div>
     </div>
