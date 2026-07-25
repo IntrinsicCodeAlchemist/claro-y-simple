@@ -51,7 +51,7 @@ claro-y-simple/
 └── .github/workflows/   # CI (tests en cada push)
 ```
 
-## API deployada
+## API desplegada
 
 **URL base**: `https://sr07qh0zxl.execute-api.us-east-1.amazonaws.com/development`
 

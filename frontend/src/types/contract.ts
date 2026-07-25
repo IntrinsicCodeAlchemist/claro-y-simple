@@ -43,6 +43,7 @@ export type IngestErrorCode =
 
 export interface IngestSuccessResponse {
   document_id: string;
+  duplicate: boolean; // true cuando se reutilizó un document_id existente por coincidencia de contenido
 }
 
 export interface IngestErrorResponse {

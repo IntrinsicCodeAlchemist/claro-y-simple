@@ -361,3 +361,59 @@ class TestHandlerInternalError:
         # El mensaje no debe exponer detalles internos
         assert "unexpected" not in body["message"]
         assert "Error interno" in body["message"]
+
+# ===========================================================================
+# Tests de detección de duplicados (Task 27)
+# ===========================================================================
+
+
+class TestDuplicateDetection:
+    """Tests de la detección de contratos duplicados por content_hash."""
+
+    def test_handler_duplicate_detected(self, lambda_context, sample_pdf_bytes):
+        """Si el GSI retorna un document_id existente → HTTP 200, duplicate: true, put_item no llamado."""
+        event = build_multipart_event(sample_pdf_bytes)
+        existing_doc_id = "aaaaaaaa-bbbb-4ccc-9ddd-eeeeeeeeeeee"
+
+        with (
+            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._dynamodb_client") as mock_dynamo,
+        ):
+            mock_s3.put_object.return_value = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+            mock_s3.head_object.return_value = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+            # GSI query retorna un ítem existente
+            mock_dynamo.query.return_value = {
+                "Items": [{"document_id": {"S": existing_doc_id}}]
+            }
+
+            response = lambda_handler(event, lambda_context)
+
+        assert response["statusCode"] == 200
+        body = json.loads(response["body"])
+        assert body["duplicate"] is True
+        assert body["document_id"] == existing_doc_id
+        # put_item NO debe haber sido llamado (no se persiste nada nuevo)
+        mock_dynamo.put_item.assert_not_called()
+
+    def test_handler_no_duplicate(self, lambda_context, sample_pdf_bytes):
+        """Si el GSI no retorna coincidencia → flujo normal, duplicate: false."""
+        event = build_multipart_event(sample_pdf_bytes)
+
+        with (
+            patch("ingestion.handler._s3_client") as mock_s3,
+            patch("ingestion.handler._dynamodb_client") as mock_dynamo,
+        ):
+            mock_s3.put_object.return_value = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+            mock_s3.head_object.return_value = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+            # GSI query retorna vacío — no hay duplicado
+            mock_dynamo.query.return_value = {"Items": []}
+            mock_dynamo.put_item.return_value = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+
+            response = lambda_handler(event, lambda_context)
+
+        assert response["statusCode"] == 200
+        body = json.loads(response["body"])
+        assert body["duplicate"] is False
+        assert "document_id" in body
+        # put_item SÍ debe haber sido llamado (flujo normal)
+        mock_dynamo.put_item.assert_called_once()

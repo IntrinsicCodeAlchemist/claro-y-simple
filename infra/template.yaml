@@ -155,9 +155,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: document_id
           AttributeType: S
+        - AttributeName: content_hash
+          AttributeType: S
       KeySchema:
         - AttributeName: document_id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ContentHashIndex
+          KeySchema:
+            - AttributeName: content_hash
+              KeyType: HASH
+          Projection:
+            ProjectionType: KEYS_ONLY
       BillingMode: PAY_PER_REQUEST
       TimeToLiveSpecification:
         Enabled: true
@@ -192,6 +201,8 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref ContractsBucket
         - DynamoDBWritePolicy:
+            TableName: !Ref ContractExtractionsTable
+        - DynamoDBReadPolicy:
             TableName: !Ref ContractExtractionsTable
         - Statement:
             - Effect: Allow

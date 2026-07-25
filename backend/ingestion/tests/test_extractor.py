@@ -214,12 +214,15 @@ class TestExtractionResultProperties:
         self, raw_text: str, page_count: int, extraction_method: str,
     ):
         """Construir ExtractionResult → build_dynamodb_item → deserialize → campos preservados."""
+        import hashlib
         now = datetime.now(timezone.utc)
+        content_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
         result = ExtractionResult(
             document_id=str(uuid.uuid4()),
             raw_text=raw_text,
             extraction_method=extraction_method,
             page_count=page_count,
+            content_hash=content_hash,
             metadata=ExtractionMetadata(
                 filename="property_test.pdf",
                 uploaded_at=now,
@@ -247,6 +250,7 @@ class TestExtractionResultProperties:
                 raw_text=raw_text,
                 extraction_method="text",
                 page_count=1,
+                content_hash="a" * 64,
                 metadata=ExtractionMetadata(
                     filename="empty.pdf",
                     uploaded_at=datetime.now(timezone.utc),

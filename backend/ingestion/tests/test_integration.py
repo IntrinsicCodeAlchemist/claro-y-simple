@@ -143,12 +143,16 @@ def test_integration_full_flow_text_extraction(s3_client, dynamo_client):
 @pytest.mark.integration
 def test_integration_contract1_roundtrip(s3_client, dynamo_client):
     """Persiste y lee un ExtractionResult; todos los campos se preservan."""
+    import hashlib
     now = datetime.now(timezone.utc)
+    raw_text = "Cláusula de penalización por rescisión anticipada.\nSe aplicará multa del 10%."
+    content_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
     original = ExtractionResult(
         document_id="a1b2c3d4-e5f6-4789-abc0-def123456789",
-        raw_text="Cláusula de penalización por rescisión anticipada.\nSe aplicará multa del 10%.",
+        raw_text=raw_text,
         extraction_method="text",
         page_count=2,
+        content_hash=content_hash,
         metadata=ExtractionMetadata(
             filename="contrato.pdf",
             uploaded_at=now,
@@ -230,3 +234,62 @@ def test_integration_empty_extraction_no_dynamodb_write(s3_client, dynamo_client
             Key={"document_id": {"S": document_id}},
         )
         assert "Item" not in result, "No debería haber registro en DynamoDB"
+
+
+# =============================================================================
+# Test 4: Detección de duplicados — segundo upload con mismo texto
+# =============================================================================
+
+
+@pytest.mark.integration
+def test_integration_duplicate_detection(s3_client, dynamo_client):
+    """Subir el mismo PDF dos veces → segunda respuesta tiene duplicate: true y mismo document_id."""
+    pdf_path = os.path.join(FIXTURES_DIR, "sample_text.pdf")
+    with open(pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+
+    event = _build_event(pdf_bytes)
+    ctx = FakeContext()
+
+    with patch("ingestion.extractor._textract_client"):
+        # Primera subida — flujo normal
+        response1 = lambda_handler(event, ctx)
+
+    assert response1["statusCode"] == 200
+    body1 = json.loads(response1["body"])
+    assert body1["duplicate"] is False
+    doc_id_1 = body1["document_id"]
+
+    with patch("ingestion.extractor._textract_client"):
+        # Segunda subida — mismo contenido, debería detectar duplicado
+        response2 = lambda_handler(event, ctx)
+
+    assert response2["statusCode"] == 200
+    body2 = json.loads(response2["body"])
+    assert body2["duplicate"] is True
+    assert body2["document_id"] == doc_id_1
+
+    # Verificar que solo hay 1 ítem con ese content_hash en DynamoDB
+    # (leemos el ítem original para obtener su content_hash)
+    stored = dynamo_client.get_item(
+        TableName=DYNAMODB_TABLE,
+        Key={"document_id": {"S": doc_id_1}},
+    )
+    assert "Item" in stored
+    content_hash = stored["Item"]["content_hash"]["S"]
+
+    # Query al GSI para confirmar que hay exactamente 1 resultado
+    gsi_result = dynamo_client.query(
+        TableName=DYNAMODB_TABLE,
+        IndexName="ContentHashIndex",
+        KeyConditionExpression="content_hash = :hash",
+        ExpressionAttributeValues={":hash": {"S": content_hash}},
+    )
+    assert len(gsi_result["Items"]) == 1
+
+    # Limpiar
+    s3_client.delete_object(Bucket=S3_BUCKET, Key=f"contracts/{doc_id_1}.pdf")
+    dynamo_client.delete_item(
+        TableName=DYNAMODB_TABLE,
+        Key={"document_id": {"S": doc_id_1}},
+    )
