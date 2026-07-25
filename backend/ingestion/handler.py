@@ -194,10 +194,16 @@ def _persist_result(result: ExtractionResult) -> None:
 
 
 def _http_response(status_code: int, body: dict) -> dict:
-    """Formatea una respuesta HTTP compatible con API Gateway proxy integration."""
+    """Formatea una respuesta HTTP compatible con API Gateway proxy integration
+    con headers CORS necesarios para que el navegador acepte la respuesta."""
     return {
         "statusCode": status_code,
-        "headers": {"Content-Type": "application/json"},
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,x-api-key",
+        },
         "body": json.dumps(body, ensure_ascii=False),
     }
 
