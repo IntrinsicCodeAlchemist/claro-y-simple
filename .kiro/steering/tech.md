@@ -18,7 +18,7 @@ inclusion: always
 
 ### Inteligencia Artificial
 - **Servicio**: Amazon Bedrock
-- **Modelo**: A definir al momento de implementar. Revisar el catálogo actualizado de modelos disponibles en Amazon Bedrock para la región de deployment — los modelos disponibles y sus precios cambian con frecuencia. Evaluar modelos de la familia Claude y Amazon Nova según disponibilidad regional, soporte para español, y relación costo/tokens al momento de la implementación.
+- **Modelo**: `us.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5 vía cross-region inference profile). Validado contra AWS real el 2026-07-25. El handler de Bedrock usa el formato de mensajes de la familia Claude (`anthropic_version: "bedrock-2023-05-31"`) — si en el futuro se cambia a un modelo Amazon Nova, la función `invoke_bedrock` en `analyzer.py` requiere reescritura para usar el schema de request de Nova (`inferenceConfig`).
 
 ### Extracción de Texto desde PDFs
 - **Principal**: `pdfplumber` — para PDFs con texto embebido (la mayoría de contratos digitales)
@@ -46,6 +46,7 @@ Estas convenciones aplican a toda la codebase y deben respetarse en cada PR.
 - **Docstrings en funciones públicas**: al menos una línea descriptiva; usar formato Google style para funciones complejas
 - **Manejo explícito de errores**: no usar excepciones genéricas (`except Exception`) sin re-raise o logging; preferir excepciones personalizadas definidas en `backend/shared/exceptions.py`
 - **Sin valores mágicos**: constantes nombradas o enums para categorías, niveles de riesgo, etc.
+- **Estructura de imports Lambda**: los módulos `ingestion`, `analysis` y `shared` se importan sin prefijo `backend.` (ej: `from analysis.analyzer import ...`, no `from backend.analysis.analyzer import ...`). Esto es consecuencia de que `CodeUri: ../backend/` en el SAM template pone el directorio `backend/` como raíz del paquete Lambda.
 
 ### TypeScript
 - **Strict mode habilitado** en `tsconfig.json` (`"strict": true`)
@@ -120,6 +121,9 @@ El endpoint de análisis llama a Amazon Bedrock en cada request. Un consumo desc
 - **No exponer el endpoint de análisis sin protección**: el endpoint `POST /analyze` nunca debe estar públicamente accesible sin autenticación mínima durante el hackathon.
 
 La API Key puede ser una constante en el frontend para el hackathon (no es seguridad production-grade, pero previene consumo accidental).
+
+- **CORS**: Configurar `Cors` en `ClaroYSimpleApi` con `AllowOrigin: '*'`, `AllowMethods: 'GET,POST,OPTIONS'`, `AllowHeaders: 'Content-Type,x-api-key'`, y `AddApiKeyRequiredToCorsPreflight: false` (el preflight OPTIONS no debe exigir API key). Los handlers Lambda también deben incluir los headers `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, y `Access-Control-Allow-Headers` en cada respuesta, ya que API Gateway en modo proxy forwarding los reenvía tal cual.
+- **Binary Media Types**: Configurar `BinaryMediaTypes: [multipart/form-data, multipart/*]` en el API para que API Gateway envíe el body del PDF como base64 (`isBase64Encoded: true`) en vez de decodificarlo como UTF-8, lo que corrompería el binario antes de que llegara al handler.
 
 ---
 

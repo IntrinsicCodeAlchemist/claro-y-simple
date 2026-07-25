@@ -57,7 +57,7 @@ flowchart LR
 
 ### Fase 1 — Infraestructura base
 
-- [ ] 1. Crear estructura de carpetas y requirements.txt
+- [x] 1. Crear estructura de carpetas y requirements.txt
 
   **Archivos**: `backend/analysis/__init__.py`, `backend/analysis/tests/__init__.py`, `backend/analysis/requirements.txt`, `backend/analysis/.env.example`
   **Requisitos**: Req 15
@@ -65,7 +65,7 @@ flowchart LR
   **Criterio de completitud**: Los archivos existen; `python -m pytest --collect-only` sobre `backend/analysis` no da `ImportError`.
 
 
-- [ ] 2. Agregar nuevas excepciones a `backend/shared/exceptions.py`
+- [x] 2. Agregar nuevas excepciones a `backend/shared/exceptions.py`
 
   **Archivos**: `backend/shared/exceptions.py`
   **Requisitos**: Req 14, Req 1, Req 3, Req 4, Req 6, Req 7
@@ -73,7 +73,7 @@ flowchart LR
   **Criterio de completitud**: `from shared.exceptions import BedrockError, BedrockErrorCode, AnalysisError, AnalysisErrorCode` no lanza error; `BedrockErrorCode.BEDROCK_TIMEOUT.value == "BEDROCK_TIMEOUT"` es `True`; las clases del Módulo 1 siguen importando sin error.
 
 
-- [ ] 3. Implementar `backend/analysis/models.py`
+- [x] 3. Implementar `backend/analysis/models.py`
 
   **Archivos**: `backend/analysis/models.py`
   **Requisitos**: Req 9, Req 10, Contrato 2, Contrato 4
@@ -85,7 +85,7 @@ flowchart LR
 
 ### Fase 2 — Camino feliz (Camino B: análisis nuevo exitoso + Camino A: cache hit)
 
-- [ ] 4. Implementar validación de request y operaciones DynamoDB en `analyzer.py`
+- [x] 4. Implementar validación de request y operaciones DynamoDB en `analyzer.py`
 
   **Archivos**: `backend/analysis/analyzer.py`
   **Requisitos**: Req 1, Req 2, Req 3, Req 9
@@ -93,7 +93,7 @@ flowchart LR
   **Criterio de completitud**: `validate_document_id({})` lanza `AnalysisError` con `error_code == AnalysisErrorCode.MISSING_DOCUMENT_ID`; `validate_document_id({"document_id": "no-es-uuid"})` lanza `AnalysisError` con `error_code == AnalysisErrorCode.INVALID_DOCUMENT_ID`; `validate_document_id({"document_id": "550e8400-e29b-41d4-a716-446655440000"})` retorna el UUID sin lanzar.
 
 
-- [ ] 5. Implementar prompt builder y template en `analyzer.py` y `prompts/clause_analysis.txt`
+- [x] 5. Implementar prompt builder y template en `analyzer.py` y `prompts/clause_analysis.txt`
 
   **Archivos**: `backend/analysis/analyzer.py`, `backend/analysis/prompts/clause_analysis.txt`
   **Requisitos**: Req 4, Req 5
@@ -101,7 +101,7 @@ flowchart LR
   **Criterio de completitud**: Con `MAX_CONTEXT_CHARS=100` en el entorno, `validate_context_length("a" * 101)` lanza `AnalysisError(CONTEXT_TOO_LONG)`; `build_prompt("texto")` retorna un string que contiene `"texto"` y no contiene el placeholder literal `"{raw_text}"`.
 
 
-- [ ] 6. Implementar invocación de Bedrock en `analyzer.py`
+- [x] 6. Implementar invocación de Bedrock en `analyzer.py`
 
   **Archivos**: `backend/analysis/analyzer.py`
   **Requisitos**: Req 6
@@ -109,7 +109,7 @@ flowchart LR
   **Criterio de completitud**: Con mock de `invoke_model` que lanza `ReadTimeoutError`, `invoke_bedrock("prompt")` lanza `BedrockError` con `error_code == BedrockErrorCode.BEDROCK_TIMEOUT`; con mock que lanza `ClientError` con código `"ThrottlingException"`, lanza `BedrockError(BEDROCK_THROTTLED)`; con mock que lanza `ClientError` con otro código, lanza `BedrockError(BEDROCK_SERVICE_ERROR)`.
 
 
-- [ ] 7. Implementar Response Parser y Risk Calculator en `analyzer.py`
+- [x] 7. Implementar Response Parser y Risk Calculator en `analyzer.py`
 
   **Archivos**: `backend/analysis/analyzer.py`
   **Requisitos**: Req 7, Req 8
@@ -117,7 +117,7 @@ flowchart LR
   **Criterio de completitud**: `parse_model_response("no es json")` lanza `AnalysisError(MODEL_RESPONSE_INVALID)`; `parse_model_response('{"summary_plain": "x", "clauses": [], "overall_recommendation": "y"}')` retorna `ModelResponse` sin lanzar; `calculate_risk_score([])` retorna `0`; `calculate_risk_score` con 3 cláusulas `alto` retorna `100` (clamped de 135).
 
 
-- [ ] 8. Implementar `analyze_contract` en `analyzer.py` y `lambda_handler` en `handler.py`
+- [x] 8. Implementar `analyze_contract` en `analyzer.py` y `lambda_handler` en `handler.py`
 
   **Archivos**: `backend/analysis/analyzer.py`, `backend/analysis/handler.py`
   **Requisitos**: Req 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15
@@ -125,7 +125,7 @@ flowchart LR
   **Criterio de completitud**: Con mocks de DynamoDB (vacío) y Bedrock (retorna JSON válido), `lambda_handler({"body": '{"document_id": "550e8400-e29b-41d4-a716-446655440000"}'}, ctx)` retorna `{"statusCode": 404, ...}` con `error_code == "DOCUMENT_NOT_FOUND"`.
 
 
-- [ ] 9. Tests unitarios del camino feliz (Camino B + Camino A)
+- [x] 9. Tests unitarios del camino feliz (Camino B + Camino A)
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`, `backend/analysis/tests/conftest.py`
   **Requisitos**: Req 2, Req 10, Req 11
@@ -137,7 +137,7 @@ flowchart LR
 
 ### Fase 3 — Casos de error
 
-- [ ] 10. Tests de validación de request
+- [x] 10. Tests de validación de request
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 1
@@ -145,14 +145,14 @@ flowchart LR
   **Criterio de completitud**: `pytest backend/analysis/tests/test_analyzer.py -v -k "validation or missing or invalid_doc"` pasa los 4 tests; `mock_dynamodb.get_item.assert_not_called()` pasa en todos.
 
 
-- [ ] 11. Tests de DOCUMENT_NOT_FOUND y CONTEXT_TOO_LONG
+- [x] 11. Tests de DOCUMENT_NOT_FOUND y CONTEXT_TOO_LONG
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 3, Req 4
   **Descripción**: `test_document_not_found` — mock `get_item` en `ContractAnalyses` retorna vacío, mock `get_item` en `ContractExtractions` retorna vacío (documento no existe); verificar HTTP 404, `error_code == "DOCUMENT_NOT_FOUND"`, `document_id` presente en el body de respuesta (porque el UUID era válido). `test_context_too_long` — mock `ContractAnalyses` vacío, mock `ContractExtractions` retorna ítem con `raw_text` de longitud `MAX_CONTEXT_CHARS + 1`; verificar HTTP 422, `error_code == "CONTEXT_TOO_LONG"`, `document_id` presente en respuesta, Bedrock no invocado (`mock_bedrock.invoke_model.assert_not_called()`).
   **Criterio de completitud**: `pytest backend/analysis/tests/test_analyzer.py -v -k "not_found or context"` pasa los 2 tests; en `test_context_too_long` el mock de Bedrock no fue llamado.
 
-- [ ] 12. Tests de errores de Bedrock
+- [x] 12. Tests de errores de Bedrock
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 6
@@ -160,14 +160,14 @@ flowchart LR
   **Criterio de completitud**: `pytest backend/analysis/tests/test_analyzer.py -v -k "bedrock"` pasa los 3 tests; `put_item` tiene 0 llamadas en todos.
 
 
-- [ ] 13. Tests de MODEL_RESPONSE_INVALID y PERSISTENCE_FAILURE
+- [x] 13. Tests de MODEL_RESPONSE_INVALID y PERSISTENCE_FAILURE
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 7, Req 9
   **Descripción**: En los tests de parseo, el setup base es: `ContractAnalyses` vacío, `ContractExtractions` con `raw_text` válido, `invoke_model` exitoso pero con la respuesta defectuosa indicada. `test_model_response_invalid_json` — `invoke_model` retorna string `"esto no es json"` como body; verificar HTTP 422, `error_code == "MODEL_RESPONSE_INVALID"`. `test_model_response_missing_fields` — `invoke_model` retorna JSON `{"clauses": []}` (sin `summary_plain` ni `overall_recommendation`); verificar HTTP 422, `error_code == "MODEL_RESPONSE_INVALID"`. `test_model_response_invalid_enum` — `invoke_model` retorna JSON con una cláusula con `"risk_level": "muy_alto"` (valor inválido); verificar HTTP 422, `error_code == "MODEL_RESPONSE_INVALID"`. `test_persistence_failure` — `invoke_model` exitoso con respuesta válida, `put_item` lanza `ClientError`; verificar HTTP 502, `error_code == "PERSISTENCE_FAILURE"`, `document_id` presente.
   **Criterio de completitud**: `pytest backend/analysis/tests/test_analyzer.py -v -k "model_response or persistence"` pasa los 4 tests.
 
-- [ ] 14. Tests de INTERNAL_ERROR
+- [x] 14. Tests de INTERNAL_ERROR
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 14
@@ -179,19 +179,20 @@ flowchart LR
 
 ### Fase 4 — Tests de integración contra LocalStack
 
-- [ ] 15. Implementar `tests/test_integration.py`
+- [x] 15. Implementar `tests/test_integration.py`
 
   **Archivos**: `backend/analysis/tests/test_integration.py`
   **Requisitos**: Req 2, Req 3, Req 9
   **Descripción**: Documentar al inicio del archivo la precondición: LocalStack debe estar corriendo y `scripts/setup-localstack.sh` debe haberse ejecutado. Marcar todos los tests con `@pytest.mark.integration`. Bedrock siempre mockeado (no tiene emulación en LocalStack). `test_integration_full_flow` — escribir un ítem directamente en la tabla `ContractExtractions` real de LocalStack usando `put_item` con todos los campos del Contrato 1; llamar `lambda_handler` con un UUID válido; verificar HTTP 200, `cached == False`; leer el ítem de `ContractAnalyses` real y verificar que todos los campos del Contrato 2 están presentes con los valores correctos; verificar que el atributo `ttl` existe y está en el futuro (mayor al timestamp actual). `test_integration_cache_hit` — ejecutar el análisis dos veces con el mismo `document_id`; en el primer llamado mockear Bedrock; en el segundo llamado verificar HTTP 200, `cached == True`, y que el mock de Bedrock fue invocado exactamente 1 vez en total (no 2). `test_integration_document_not_found` — llamar `lambda_handler` con un `document_id` que no existe en `ContractExtractions`; verificar HTTP 404, `error_code == "DOCUMENT_NOT_FOUND"`.
   **Criterio de completitud**: Con LocalStack activo, `ENVIRONMENT=localstack pytest backend/analysis/tests/test_integration.py -v -m integration` pasa los 3 tests.
+  **Nota de validación**: Implementado y validado contra LocalStack real (Docker) el 2026-07-25 — 4 tests, 0 fallos (test_integration_full_flow, test_integration_cache_hit, test_integration_document_not_found, test_integration_contract2_roundtrip).
 
 
 ---
 
 ### Fase 5 — SAM template
 
-- [ ] 16. Agregar `AnalysisFunction` y `ContractAnalysesTable` a `infra/template.yaml`
+- [x] 16. Agregar `AnalysisFunction` y `ContractAnalysesTable` a `infra/template.yaml`
 
   **Archivos**: `infra/template.yaml`
   **Requisitos**: Req 12, Req 15
@@ -203,7 +204,7 @@ flowchart LR
 
 ### Fase 6 — Property-based testing (baja prioridad)
 
-- [ ] 17. Property-based tests con Hypothesis
+- [x] 17. Property-based tests con Hypothesis
 
   **Archivos**: `backend/analysis/tests/test_analyzer.py`
   **Requisitos**: Req 1, Req 8, Req 9
@@ -222,3 +223,38 @@ flowchart LR
 - **Orden no es solo sugerido**: el grafo de dependencias refleja requisitos reales de import (Task 3 necesita Task 2, Task 4 necesita Task 3, etc.). Saltear tasks fuera de orden producirá errores de import que no son bugs de la implementación.
 - **Variables de entorno en tests**: los tests unitarios (Fases 2-3) deben setear las variables de entorno necesarias en fixtures o con `monkeypatch` de pytest — no depender del `.env` del módulo. Los tests de integración (Fase 4) leen del entorno real vía `.env.localstack.example` o `ENVIRONMENT=localstack`.
 - **Fase 6 es recortable**: si el tiempo apremia antes de la demo, la Task 17 (Hypothesis) es la primera en sacrificarse sin comprometer el flujo principal ni los contratos de interfaz.
+
+
+---
+
+## Fixes post-deploy validados contra AWS real
+
+Estas tasks fueron implementadas después del deploy inicial a AWS para resolver problemas detectados en runtime con Bedrock real (no mockeado).
+
+- [x] FIX-A1. Soporte para markdown fences en respuesta de Bedrock
+
+  **Archivos**: `backend/analysis/analyzer.py`
+  **Problema**: Claude en Bedrock a veces envuelve su respuesta JSON en bloques ` ```json ... ``` ` a pesar de la instrucción "Responde ÚNICAMENTE con el JSON". El parser fallaba con `MODEL_RESPONSE_INVALID`.
+  **Fix**: Agregar regex `_MARKDOWN_FENCE_RE` que extrae el contenido dentro de fences antes de intentar `json.loads`. Si no hay fence, se parsea el string crudo como antes.
+  **Validación**: Test `test_model_response_markdown_fence_parsed` agregado; flujo real contra AWS retorna HTTP 200 con la respuesta envuelta en fences.
+
+- [x] FIX-A2. Instrucción anti-fence reforzada en prompt template
+
+  **Archivos**: `backend/analysis/prompts/clause_analysis.txt`
+  **Problema**: Mismo que FIX-A1 — reducir la frecuencia del wrapping en fences desde el lado del prompt.
+  **Fix**: Agregar al final del template: "No envuelvas la respuesta en bloques de código markdown (```). Respondé con el objeto JSON crudo, sin ningún texto ni formato adicional antes o después."
+  **Validación**: Reducción observada en frecuencia de fences en responses reales; cuando ocurre, FIX-A1 lo maneja.
+
+- [x] FIX-A3. Double-escaped braces en prompt template para `str.format()`
+
+  **Archivos**: `backend/analysis/prompts/clause_analysis.txt`
+  **Problema**: El template usa `str.format(raw_text=...)` de Python. Las llaves `{` `}` del ejemplo JSON dentro del prompt se interpretaban como placeholders de format, causando `KeyError` en runtime.
+  **Fix**: Escapar todas las llaves del JSON de ejemplo como `{{` y `}}` excepto `{raw_text}`.
+  **Validación**: `build_prompt("texto de prueba")` ya no lanza `KeyError`; deploy exitoso.
+
+- [x] FIX-A4. `get_boto3_client` acepta parámetro `config` para Bedrock timeout
+
+  **Archivos**: `backend/shared/aws_utils.py`
+  **Problema**: `invoke_bedrock` necesita pasar `Config(read_timeout=...)` al cliente `bedrock-runtime`, pero `get_boto3_client` solo aceptaba `service_name` — no había forma de pasar la configuración de botocore.
+  **Fix**: Agregar parámetro opcional `config: Optional[Config] = None` a `get_boto3_client`. Si se pasa, se incluye como kwarg en `boto3.client(...)`.
+  **Validación**: El cliente `bedrock-runtime` se inicializa con timeout configurable; no hay regresión en los otros clientes (S3, DynamoDB) que no pasan config.
