@@ -416,6 +416,49 @@ def test_model_response_invalid_json(mock_dynamodb, mock_bedrock, lambda_context
 
 @patch("backend.analysis.analyzer._bedrock_client", autospec=True)
 @patch("backend.analysis.analyzer._dynamodb_client")
+def test_model_response_markdown_fence_parsed(mock_dynamodb, mock_bedrock, lambda_context):
+    """Bedrock envuelve JSON en ```json...``` -> parse_model_response lo extrae y devuelve HTTP 200."""
+    from backend.analysis.handler import lambda_handler
+
+    def get_item_side_effect(**kwargs):
+        table = kwargs["TableName"]
+        if table == "ContractAnalyses":
+            return {}
+        elif table == "ContractExtractions":
+            return make_extraction_item(VALID_UUID, SAMPLE_RAW_TEXT)
+        return {}
+
+    mock_dynamodb.get_item.side_effect = get_item_side_effect
+    mock_dynamodb.put_item.return_value = {}
+
+    valid_json = json.dumps({
+        "summary_plain": "Contrato de alquiler con cláusulas estándar.",
+        "clauses": [
+            {
+                "clause_text": "El contrato se renueva automáticamente cada 12 meses.",
+                "category": "renovacion_automatica",
+                "risk_level": "medio",
+                "explanation": "El contrato se renueva sin necesidad de acción del inquilino.",
+                "suggested_question": "¿Puedo optar por no renovar sin penalización?",
+            }
+        ],
+        "overall_recommendation": "Revisar la cláusula de renovación automática.",
+    })
+    mock_bedrock.invoke_model.return_value = _make_bedrock_raw_response(
+        f"```json\n{valid_json}\n```"
+    )
+
+    response = lambda_handler(make_event(VALID_UUID), lambda_context)
+
+    assert response["statusCode"] == 200
+    body = json.loads(response["body"])
+    assert body["cached"] is False
+    assert body["document_id"] == VALID_UUID
+    assert len(body["clauses"]) == 1
+
+
+@patch("backend.analysis.analyzer._bedrock_client", autospec=True)
+@patch("backend.analysis.analyzer._dynamodb_client")
 def test_model_response_missing_fields(mock_dynamodb, mock_bedrock, lambda_context):
     """Bedrock retorna JSON sin campos requeridos -> HTTP 422, MODEL_RESPONSE_INVALID."""
     from backend.analysis.handler import lambda_handler

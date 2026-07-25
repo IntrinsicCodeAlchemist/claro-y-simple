@@ -32,4 +32,5 @@ CONTRATO A ANALIZAR:
 {raw_text}
 ---
 
+No envuelvas la respuesta en bloques de código markdown (```). Respondé con el objeto JSON crudo, sin ningún texto ni formato adicional antes o después.
 Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales.

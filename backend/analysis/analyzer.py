@@ -41,6 +41,8 @@ _UUID_V4_REGEX = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 )
 
+_MARKDOWN_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]+?)\s*```")
+
 _BEDROCK_TIMEOUT_SECONDS = int(os.environ.get("BEDROCK_TIMEOUT_SECONDS", "45"))
 
 _dynamodb_client = get_boto3_client("dynamodb")
@@ -262,8 +264,10 @@ def parse_model_response(raw_response: str) -> ModelResponse:
         AnalysisError: Con MODEL_RESPONSE_INVALID si el JSON es inválido
             o no cumple el schema.
     """
+    match = _MARKDOWN_FENCE_RE.search(raw_response.strip())
+    cleaned = match.group(1).strip() if match else raw_response.strip()
     try:
-        data = json.loads(raw_response)
+        data = json.loads(cleaned)
     except (json.JSONDecodeError, TypeError) as exc:
         raise AnalysisError(
             error_code=AnalysisErrorCode.MODEL_RESPONSE_INVALID,
