@@ -75,7 +75,7 @@ export function ClauseCard({ clause }: ClauseCardProps) {
       </blockquote>
 
       {/* Explicación en lenguaje simple — Req 7.5 */}
-      <p className="text-sm text-gray-800 leading-relaxed mb-3">
+      <p className="text-sm text-gray-800 leading-relaxed mb-3 text-justify">
         {clause.explanation}
       </p>
 

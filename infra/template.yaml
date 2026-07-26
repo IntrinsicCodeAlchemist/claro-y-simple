@@ -280,6 +280,40 @@ Resources:
             Method: POST
             RestApiId: !Ref ClaroYSimpleApi
 
+  # -------------------------------------------------------------------------
+  # Bucket S3 — hosting estático del frontend (React SPA)
+  # -------------------------------------------------------------------------
+
+  FrontendHostingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub
+        - "claro-y-simple-frontend-${Suffix}"
+        - Suffix: !FindInMap [EnvironmentBucketSuffix, !Ref EnvironmentName, Suffix]
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: project
+          Value: hackaton
+
+  FrontendHostingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendHostingBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendHostingBucket.Arn}/*"
+
 # ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
@@ -304,3 +338,7 @@ Outputs:
   ContractAnalysesTableName:
     Description: Nombre de la tabla DynamoDB de análisis
     Value: !Ref ContractAnalysesTable
+
+  FrontendUrl:
+    Description: URL pública del frontend (S3 static website hosting)
+    Value: !GetAtt FrontendHostingBucket.WebsiteURL
