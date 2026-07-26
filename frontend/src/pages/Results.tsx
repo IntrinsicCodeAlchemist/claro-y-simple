@@ -162,7 +162,7 @@ export function Results() {
           >
             Recomendación general
           </h2>
-          <p className="text-base text-gray-900 leading-relaxed">
+          <p className="text-base text-gray-900 leading-relaxed text-justify">
             {overall_recommendation}
           </p>
         </section>
