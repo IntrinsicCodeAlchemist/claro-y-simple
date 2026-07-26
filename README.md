@@ -12,7 +12,7 @@ En Argentina y LatAm, millones de personas firman contratos sin entender cláusu
 
 1. El usuario sube un PDF de un contrato desde la UI
 2. El backend extrae el texto (pdfplumber para PDFs digitales, Amazon Textract para escaneados)
-3. Amazon Bedrock (`us.anthropic.claude-haiku-4-5-20251001-v1:0`) analiza las cláusulas y genera el resumen
+3. Amazon Bedrock analiza las cláusulas y genera el resumen
 4. El usuario recibe un reporte con cláusulas de riesgo categorizadas, score 0-100, y preguntas sugeridas
 
 ## Stack tecnológico
@@ -21,7 +21,7 @@ En Argentina y LatAm, millones de personas firman contratos sin entender cláusu
 |------|-----------|
 | Backend | Python 3.12, Lambda handlers (API Gateway proxy integration), Pydantic v2 |
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS |
-| IA | Amazon Bedrock — `us.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5 vía cross-region inference profile) |
+| IA | Amazon Bedrock |
 | Extracción de texto | pdfplumber + Amazon Textract (fallback para PDFs escaneados) |
 | Infraestructura | AWS SAM, Lambda, API Gateway (con API Key + Usage Plan), S3, DynamoDB |
 | Testing | pytest + Hypothesis (backend), Vitest + fast-check (frontend) |
@@ -160,7 +160,7 @@ npm run test -- --run
 
 El proyecto se divide en 3 módulos independientes que se comunican vía contratos de datos definidos en `.kiro/steering/interface-contracts.md`:
 
-1. **Ingestion** (`backend/ingestion/`): Recibe PDF → extrae texto → persiste en DynamoDB (`ContractExtractions`)
+1. **Ingestion** (`backend/ingestion/`): Recibe PDF → extrae texto → detecta duplicados por hash SHA-256 del texto extraído → persiste en DynamoDB (`ContractExtractions`). Si el contrato ya fue subido antes, reutiliza el `document_id` existente (campo `duplicate: true/false` en la respuesta) en vez de volver a analizarlo
 2. **Analysis** (`backend/analysis/`): Lee texto → analiza con Bedrock → calcula risk_score determinísticamente → persiste resultado en DynamoDB (`ContractAnalyses`). Cachea resultados (campo `cached: true/false` en la respuesta)
 3. **Frontend** (`frontend/`): UI para subir PDFs y visualizar resultados — upload con drag & drop, estados de carga, manejo de errores con retry diferenciado, score visual con paleta rojo/amber/verde
 
@@ -173,6 +173,11 @@ Los contratos entre módulos son fuente de verdad y no se modifican sin aprobaci
 - **Contrato 4**: Analysis HTTP response → Frontend (`POST /analyze`)
 
 Ver detalle completo en `.kiro/steering/interface-contracts.md`.
+
+## Documentación adicional
+
+- [`docs/architecture.md`](docs/architecture.md) — diagramas de secuencia y de componentes del flujo completo (ingesta → análisis), con las decisiones de diseño detrás de cada paso
+- [`docs/casos-de-uso.md`](docs/casos-de-uso.md) — casos de uso de `/ingest` y `/analyze` en lenguaje simple, incluyendo los 10 escenarios de error de cada endpoint y los casos especiales de duplicados y caché
 
 ## Convención de imports Lambda
 
@@ -194,7 +199,7 @@ sam build
 sam deploy --guided
 # Parámetros requeridos:
 #   EnvironmentName: development | production
-#   BedrockModelId: us.anthropic.claude-haiku-4-5-20251001-v1:0
+#   BedrockModelId: <tu-modelo-de-ia>
 ```
 
 La API Key y el Usage Plan se crean automáticamente como parte del stack (ver `ClaroYSimpleApiKey` en `infra/template.yaml`). Para obtener el valor real de la key después del deploy:
@@ -203,12 +208,20 @@ La API Key y el Usage Plan se crean automáticamente como parte del stack (ver `
 aws apigateway get-api-keys --include-values --region us-east-1
 ```
 
+El stack también crea un bucket S3 (`FrontendHostingBucket`) configurado como static website hosting para servir el build del frontend. La URL queda disponible en el output `FrontendUrl` del stack:
+
+```bash
+aws cloudformation describe-stacks --stack-name <nombre-del-stack> \
+  --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text
+```
+
+Para subir el build: `npm run build` en `frontend/` y luego sincronizar `frontend/dist/` al bucket con `aws s3 sync`.
+
 ## Contexto
 
 Proyecto desarrollado durante el **Hackathon Kiro AI — Powered by AWS** (20-27 de julio de 2026).
 
 - **Equipo**: 3 integrantes con conocimiento básico de AWS
-- **Presupuesto**: ~$100 USD en créditos AWS
 - **Objetivo**: demostrar uso de IA generativa (Amazon Bedrock) para resolver un problema real con impacto social
 
 ## Licencia
